@@ -1,0 +1,26 @@
+const express = require('express');
+const cors    = require('cors');
+const helmet  = require('helmet');
+require('dotenv').config();
+
+const publicRoutes = require('./routes/public');
+const adminRoutes  = require('./routes/admin');
+
+const app = express();
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? 'https://your-ministry-site.org'
+    : 'http://localhost:5173',
+}));
+app.use(express.json({ limit: '10kb' }));
+
+app.use('/api', publicRoutes);
+app.use('/api/admin', adminRoutes);
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Server error' });
+});
+
+module.exports = app;
