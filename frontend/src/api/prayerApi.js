@@ -7,8 +7,8 @@ const authHeader = () => ({
 });
 
 // Public
-export const getRequests = (page=1) =>
-  axios.get(`${API}/prayer-requests?page=${page}`).then(r=>r.data);
+export const getRequests = (page=1, church='') =>
+  axios.get(`${API}/prayer-requests?page=${page}${church ? `&church=${church}` : ''}`).then(r=>r.data);
 
 export const searchRequests = (params) =>
   axios.get(`${API}/prayer-requests/search`, {params}).then(r=>r.data);

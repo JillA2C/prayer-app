@@ -22,9 +22,21 @@ router.post('/login', loginLimit,
     const { rows } = await pool.query(
       'SELECT * FROM admins WHERE username = $1', [username]
     );
-    const admin = rows[0];
-    if (!admin || !(await bcrypt.compare(password, admin.password_hash)))
-      return res.status(401).json({ error: 'Invalid credentials' });
+   const admin = rows[0];
+
+if (!admin) {
+  return res.status(401).json({ error: 'Invalid credentials' });
+}
+
+if (!admin.password_hash) {
+  return res.status(500).json({ error: 'Server misconfiguration' });
+}
+
+const isMatch = await bcrypt.compare(password, admin.password_hash);
+
+if (!isMatch) {
+  return res.status(401).json({ error: 'Invalid credentials' });
+}
 
     const token = jwt.sign({ id: admin.id, username: admin.username },
       process.env.JWT_SECRET, { expiresIn: '8h' });
@@ -46,21 +58,21 @@ router.post('/requests', auth,
   body('prayer_title').trim().isLength({ min:3, max:200 }),
   body('prayer_message').trim().isLength({ min:10 }),
   body('show_name').optional().isBoolean(),
+  body('church').optional().trim(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-    const { full_name, prayer_title, prayer_message, show_name = true } = req.body;
+    const { full_name, prayer_title, prayer_message, show_name = true, church = 'st_michael' } = req.body;
     const { rows } = await pool.query(
       `INSERT INTO prayer_requests
-         (full_name, prayer_title, prayer_message, show_name, added_by)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [full_name, prayer_title, prayer_message, show_name, req.admin.id]
+         (full_name, prayer_title, prayer_message, show_name, added_by, church)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [full_name, prayer_title, prayer_message, show_name, req.admin.id, church]
     );
     res.status(201).json({ request: rows[0] });
   }
 );
-
 // PUT /api/admin/requests/:id
 router.put('/requests/:id', auth, async (req, res) => {
   const { full_name, prayer_title, prayer_message, show_name, status } = req.body;

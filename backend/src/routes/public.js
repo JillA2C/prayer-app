@@ -8,16 +8,25 @@ const router = express.Router();
 router.get('/prayer-requests', async (req, res) => {
   const page   = Math.max(1, parseInt(req.query.page) || 1);
   const offset = (page - 1) * 20;
+  const { church } = req.query;
   try {
+    let where = "WHERE status = 'approved'";
+    const params = [];
+    if (church) { params.push(church); where += ` AND church = $${params.length}`; }
+    params.push(offset);
+
     const { rows } = await pool.query(
-      `SELECT id, prayer_title, pray_count, date_added,
+      `SELECT id, prayer_title, pray_count, date_added, church,
               CASE WHEN show_name THEN full_name ELSE 'Anonymous' END AS display_name,
               LEFT(prayer_message, 200) AS preview
-       FROM prayer_requests WHERE status = 'approved'
-       ORDER BY date_added DESC LIMIT 20 OFFSET $1`, [offset]
+       FROM prayer_requests ${where}
+       ORDER BY date_added DESC LIMIT 20 OFFSET $${params.length}`, params
     );
+
+    const totalParams = church ? [church] : [];
+    const totalWhere = church ? "WHERE status='approved' AND church = $1" : "WHERE status='approved'";
     const total = await pool.query(
-      `SELECT COUNT(*) FROM prayer_requests WHERE status='approved'`
+      `SELECT COUNT(*) FROM prayer_requests ${totalWhere}`, totalParams
     );
     res.json({ requests: rows, total: parseInt(total.rows[0].count), page });
   } catch (err) { res.status(500).json({ error: 'Fetch failed' }); }
@@ -25,14 +34,15 @@ router.get('/prayer-requests', async (req, res) => {
 
 // GET /api/prayer-requests/search
 router.get('/prayer-requests/search', async (req, res) => {
-  const { name, from, to } = req.query;
+  const { name, from, to, church } = req.query;
   const params = [];
   let where = "WHERE status = 'approved'";
-  if (name) { params.push(`%${name}%`); where += ` AND LOWER(full_name) LIKE LOWER($${params.length})`; }
-  if (from) { params.push(from);        where += ` AND date_added >= $${params.length}`; }
-  if (to)   { params.push(to);          where += ` AND date_added <= $${params.length}`; }
+  if (name)   { params.push(`%${name}%`); where += ` AND LOWER(full_name) LIKE LOWER($${params.length})`; }
+  if (from)   { params.push(from);        where += ` AND date_added >= $${params.length}`; }
+  if (to)     { params.push(to);          where += ` AND date_added <= $${params.length}`; }
+  if (church) { params.push(church);      where += ` AND church = $${params.length}`; }
   const { rows } = await pool.query(
-    `SELECT id, prayer_title, pray_count, date_added,
+    `SELECT id, prayer_title, pray_count, date_added, church,
             CASE WHEN show_name THEN full_name ELSE 'Anonymous' END AS display_name,
             LEFT(prayer_message,200) AS preview
      FROM prayer_requests ${where} ORDER BY date_added DESC LIMIT 50`, params
