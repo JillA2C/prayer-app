@@ -126,6 +126,10 @@ export default function Dashboard() {
         {churchInfo.icon} {churchInfo.name} (change)
       </button>
 
+      <button onClick={() => window.open('/', '_blank')} style={styles.viewPublicBtn}>
+        🌐 View Public Site
+      </button>
+
       <div style={{display:'flex', gap:'8px', margin:'16px 0'}}>
         <button onClick={() => { resetForm(); setShowForm(v => !v); }} style={styles.addBtn}>
           + Add Prayer Request
@@ -230,5 +234,9 @@ const styles = {
   td: { padding:'8px' },
   commentCard: { background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', padding:'12px', marginBottom:'8px' },
   approveBtn: { background:'#16A34A', color:'white', border:'none', padding:'6px 12px', borderRadius:'4px', cursor:'pointer', marginRight:'8px' },
-  rejectBtn: { background:'#DC2626', color:'white', border:'none', padding:'6px 12px', borderRadius:'4px', cursor:'pointer' }
+  rejectBtn: { background:'#DC2626', color:'white', border:'none', padding:'6px 12px', borderRadius:'4px', cursor:'pointer' },
+  viewPublicBtn: {
+    background:'none', border:'1px solid #1B3A6B', borderRadius:'6px',
+    padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px', marginLeft:'8px'
+  }
 };
