@@ -3,20 +3,26 @@ import { getComments, submitComment } from '../api/prayerApi';
 
 export default function CommentPanel({ requestId }) {
   const [comments, setComments] = useState([]);
-  const [form, setForm] = useState({ visitor_name: '', comment_text: '' });
+  const [asAnonymous, setAsAnonymous] = useState(false);
+  const [commentText, setCommentText] = useState('');
   const [status, setStatus] = useState('idle');
+
+  const visitorName = localStorage.getItem('visitorName') || 'Anonymous';
 
   useEffect(() => {
     getComments(requestId).then(d => setComments(d.comments));
   }, [requestId]);
 
   const handleSubmit = async () => {
-    if (form.comment_text.trim().length < 5) return;
+    if (commentText.trim().length < 5) return;
     setStatus('loading');
     try {
-      await submitComment(requestId, form);
+      await submitComment(requestId, {
+        visitor_name: asAnonymous ? 'Anonymous' : visitorName,
+        comment_text: commentText
+      });
       setStatus('success');
-      setForm({ visitor_name: '', comment_text: '' });
+      setCommentText('');
     } catch {
       setStatus('error');
     }
@@ -43,22 +49,27 @@ export default function CommentPanel({ requestId }) {
           <p style={{color:'#16A34A'}}>Thank you! Your encouragement will appear shortly.</p>
         ) : (
           <>
-            <input
-              placeholder="Your name (optional)"
-              value={form.visitor_name}
-              onChange={e => setForm({...form, visitor_name: e.target.value})}
-              maxLength={80}
-              style={{display:'block', width:'100%', marginBottom:'6px', padding:'6px'}}
-            />
+            <div style={{fontSize:'13px', color:'#555', marginBottom:'8px'}}>
+              Posting as: <strong>{asAnonymous ? 'Anonymous' : visitorName}</strong>
+              <label style={{marginLeft:'12px', fontSize:'12px', color:'#6B7280', cursor:'pointer'}}>
+                <input
+                  type="checkbox"
+                  checked={asAnonymous}
+                  onChange={e => setAsAnonymous(e.target.checked)}
+                  style={{marginRight:'4px'}}
+                />
+                Post as Anonymous
+              </label>
+            </div>
             <textarea
               placeholder="Write a short encouragement..."
-              value={form.comment_text}
-              onChange={e => setForm({...form, comment_text: e.target.value})}
+              value={commentText}
+              onChange={e => setCommentText(e.target.value)}
               maxLength={300}
               rows={3}
-              style={{display:'block', width:'100%', marginBottom:'6px', padding:'6px'}}
+              style={{display:'block', width:'100%', marginBottom:'6px', padding:'6px', borderRadius:'4px', border:'1px solid #ccc', boxSizing:'border-box'}}
             />
-            <div style={{fontSize:'12px', color:'#999'}}>{form.comment_text.length}/300</div>
+            <div style={{fontSize:'12px', color:'#999', marginBottom:'6px'}}>{commentText.length}/300</div>
             {status === 'error' && <p style={{color:'#DC2626'}}>Something went wrong. Try again.</p>}
             <button onClick={handleSubmit} disabled={status==='loading'}
               style={{background:'#1B3A6B', color:'white', border:'none', padding:'8px 16px', borderRadius:'4px', cursor:'pointer'}}>
