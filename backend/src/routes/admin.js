@@ -63,12 +63,13 @@ router.post('/requests', auth,
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-    const { full_name, prayer_title, prayer_message, show_name = true, church = 'st_michael' } = req.body;
+    const { full_name, prayer_title, prayer_message, show_name = true, church = 'st_michael', date_override } = req.body;
+    const dateValue = date_override ? new Date(date_override) : new Date();
     const { rows } = await pool.query(
       `INSERT INTO prayer_requests
-         (full_name, prayer_title, prayer_message, show_name, added_by, church)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [full_name, prayer_title, prayer_message, show_name, req.admin.id, church]
+         (full_name, prayer_title, prayer_message, show_name, added_by, church, date_added)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [full_name, prayer_title, prayer_message, show_name, req.admin.id, church, dateValue]
     );
     res.status(201).json({ request: rows[0] });
   }
