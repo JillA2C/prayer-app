@@ -20,6 +20,9 @@ export default function Dashboard() {
   const [form, setForm] = useState({ full_name:'', prayer_message:'' });
   const [editingId, setEditingId] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [publicView, setPublicView] = useState('all');
+  const [publicSearch, setPublicSearch] = useState('');
+  const [publicDateFilter, setPublicDateFilter] = useState('');
   const navigate = useNavigate();
 
   const load = async () => {
@@ -300,7 +303,7 @@ export default function Dashboard() {
                 ));
               })()
           )}
-          
+
           {/* Pending Comments */}
           <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>Pending Comments</h3>
           {pendingComments.length === 0
@@ -322,13 +325,59 @@ export default function Dashboard() {
       {/* PUBLIC VIEW TAB */}
       {adminTab === 'public' && (
         <>
-          <p style={{color:'#6B7280', fontSize:'13px', marginBottom:'12px'}}>
+          <p style={{color:'#6B7280', fontSize:'13px', marginBottom:'8px'}}>
             This is how visitors see the prayer wall. You can pray and leave encouragements too.
           </p>
-          {requests.length === 0
-            ? <p style={{color:'#6B7280'}}>No prayer requests for this church yet.</p>
-            : requests.map(r => <PrayerCard key={r.id} request={r} />)
-          }
+
+          <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+            <button onClick={() => setPublicView('all')}
+              style={publicView === 'all' ? styles.tabActive : styles.tab}>
+              📋 View All
+            </button>
+            <button onClick={() => setPublicView('name')}
+              style={publicView === 'name' ? styles.tabActive : styles.tab}>
+              👤 By Name
+            </button>
+            <button onClick={() => setPublicView('date')}
+              style={publicView === 'date' ? styles.tabActive : styles.tab}>
+              📅 By Date
+            </button>
+          </div>
+
+          {publicView === 'name' && (
+            <input
+              placeholder="Type a name..."
+              value={publicSearch}
+              onChange={e => setPublicSearch(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}}
+            />
+          )}
+
+          {publicView === 'date' && (
+            <input
+              type="date"
+              value={publicDateFilter}
+              onChange={e => setPublicDateFilter(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}}
+            />
+          )}
+
+          {(() => {
+            let displayed = requests;
+            if (publicView === 'name' && publicSearch) {
+              displayed = requests.filter(r =>
+                r.display_name.toLowerCase().includes(publicSearch.toLowerCase())
+              );
+            }
+            if (publicView === 'date' && publicDateFilter) {
+              displayed = requests.filter(r =>
+                new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter
+              );
+            }
+            return displayed.length === 0
+              ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
+              : displayed.map(r => <PrayerCard key={r.id} request={r} />);
+          })()}
         </>
       )}
     </div>

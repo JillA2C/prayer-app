@@ -7,7 +7,8 @@ export default function CommentPanel({ requestId }) {
   const [commentText, setCommentText] = useState('');
   const [status, setStatus] = useState('idle');
 
-  const visitorName = localStorage.getItem('visitorName') || 'Anonymous';
+  const isAdmin = !!localStorage.getItem('adminToken');
+  const visitorName = isAdmin ? 'Admin' : (localStorage.getItem('visitorName') || 'Anonymous');
 
   useEffect(() => {
     getComments(requestId).then(d => setComments(d.comments));
