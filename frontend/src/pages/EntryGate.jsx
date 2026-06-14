@@ -96,7 +96,7 @@ export default function EntryGate() {
     }
     localStorage.setItem('visitorName', name.trim());
     localStorage.setItem('entered', 'true');
-    navigate('/');
+    window.location.href = '/';
   };
 
   return (
