@@ -74,6 +74,16 @@ router.post('/requests', auth,
     res.status(201).json({ request: rows[0] });
   }
 );
+
+// GET /api/admin/requests/pending
+router.get('/requests/pending', auth, async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT * FROM prayer_requests WHERE status = 'pending' ORDER BY date_added DESC`
+  );
+  res.json({ requests: rows });
+});
+
+
 // PUT /api/admin/requests/:id
 router.put('/requests/:id', auth, async (req, res) => {
   const { full_name, prayer_title, prayer_message, show_name, status } = req.body;
@@ -95,6 +105,25 @@ router.delete('/requests/:id', auth, async (req, res) => {
   );
   if (!rowCount) return res.status(404).json({ error: 'Not found' });
   res.json({ message: 'Deleted.' });
+});
+
+
+// PUT /api/admin/requests/:id/approve
+router.put('/requests/:id/approve', auth, async (req, res) => {
+  const { rows } = await pool.query(
+    `UPDATE prayer_requests SET status='approved' WHERE id=$1 RETURNING *`, [req.params.id]
+  );
+  res.json({ request: rows[0] });
+});
+
+// PUT /api/admin/requests/:id/reject
+router.put('/requests/:id/reject', auth, async (req, res) => {
+  const { reason = '' } = req.body;
+  const { rows } = await pool.query(
+    `UPDATE prayer_requests SET status='hidden', reject_reason=$1 WHERE id=$2 RETURNING *`,
+    [reason, req.params.id]
+  );
+  res.json({ request: rows[0] });
 });
 
 // GET /api/admin/comments

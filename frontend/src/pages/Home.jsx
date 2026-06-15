@@ -1,19 +1,34 @@
 import { useState, useEffect } from 'react';
 import PrayerCard from '../components/PrayerCard';
-import { getRequests } from '../api/prayerApi';
+import { getRequests, submitPrayerRequest, checkMyStatus } from '../api/prayerApi';
 
 const CHURCHES = [
   { id: 'st_michael', name: 'St. Michael Parish', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
   { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' }
 ];
 
+const maskName = (name) => {
+  if (!name || name.length <= 2) return '**';
+  const first = name[0];
+  const last = name[name.length - 1];
+  const middle = '*'.repeat(Math.min(name.length - 2, 3));
+  return `${first}${middle}${last}`;
+};
+
 export default function Home() {
   const [church, setChurch] = useState(null);
-  const [viewMode, setViewMode] = useState('all'); // 'all' | 'name' | 'date'
+  const [viewMode, setViewMode] = useState('all');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [nameFilter, setNameFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [submitForm, setSubmitForm] = useState({ prayer_message: '' });
+  const [submitStatus, setSubmitStatus] = useState('idle');
+  const [myStatuses, setMyStatuses] = useState([]);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusChecked, setStatusChecked] = useState(false);
+  const visitorName = localStorage.getItem('visitorName') || '';
 
   const load = async (churchId) => {
     setLoading(true);
@@ -26,7 +41,6 @@ export default function Home() {
     if (church) load(church);
   }, [church]);
 
-  // Church selection screen
   if (!church) {
     return (
       <div style={styles.page}>
@@ -53,7 +67,6 @@ export default function Home() {
 
   const churchInfo = CHURCHES.find(c => c.id === church);
 
-  // Filter requests based on view mode
   let displayed = requests;
   if (viewMode === 'name' && nameFilter) {
     displayed = requests.filter(r =>
@@ -75,49 +88,146 @@ export default function Home() {
         </button>
       </header>
 
-      <div style={styles.tabs}>
-        <button
-          onClick={() => setViewMode('all')}
-          style={viewMode === 'all' ? styles.tabActive : styles.tab}
-        >
-          📋 View All
-        </button>
-        <button
-          onClick={() => setViewMode('name')}
-          style={viewMode === 'name' ? styles.tabActive : styles.tab}
-        >
-          👤 View by Name
-        </button>
-        <button
-          onClick={() => setViewMode('date')}
-          style={viewMode === 'date' ? styles.tabActive : styles.tab}
-        >
-          📅 View by Date
+      <div style={{textAlign:'right', marginBottom:'12px'}}>
+        <button onClick={() => setShowSubmitForm(true)} style={styles.submitBtn}>
+          🙏 Submit a Prayer Request
         </button>
       </div>
 
+      {showSubmitForm && (
+        <div style={styles.overlay}>
+          <div style={styles.popup}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
+              <h3 style={{margin:0, color:'#1B3A6B'}}>🙏 Submit a Prayer Request</h3>
+              <button onClick={() => { setShowSubmitForm(false); setSubmitStatus('idle'); }} style={styles.closeBtn}>✕</button>
+            </div>
+            {submitStatus === 'success' ? (
+              <div style={{textAlign:'center', padding:'20px'}}>
+                <p style={{fontSize:'24px'}}>🙏</p>
+                <p style={{color:'#16A34A', fontWeight:'600'}}>Prayer request submitted!</p>
+                <p style={{color:'#6B7280', fontSize:'14px'}}>It will appear after review. God bless you!</p>
+                <button onClick={() => { setShowSubmitForm(false); setSubmitStatus('idle'); setSubmitForm({ prayer_message:'' }); }} style={styles.submitBtn}>Close</button>
+              </div>
+            ) : (
+              <>
+                <div style={{marginBottom:'12px'}}>
+                  <label style={styles.popupLabel}>Your Name</label>
+                  <input value={visitorName} readOnly style={{...styles.popupInput, background:'#f5f5f5', color:'#666'}} />
+                </div>
+                <div style={{marginBottom:'12px'}}>
+                  <label style={styles.popupLabel}>Your Prayer Request</label>
+                  <textarea
+                    placeholder="Share your prayer request..."
+                    rows={4}
+                    value={submitForm.prayer_message}
+                    onChange={e => setSubmitForm({...submitForm, prayer_message: e.target.value})}
+                    style={styles.popupInput}
+                  />
+                </div>
+                {submitStatus === 'error' && <p style={{color:'#DC2626', fontSize:'13px'}}>Something went wrong. Try again.</p>}
+                <button
+                  disabled={submitStatus === 'loading'}
+                  onClick={async () => {
+                    if (!submitForm.prayer_message.trim()) { alert('Please enter your prayer request.'); return; }
+                    setSubmitStatus('loading');
+                    try {
+                      await submitPrayerRequest({
+                        full_name: visitorName || 'Anonymous',
+                        prayer_message: submitForm.prayer_message,
+                        church
+                      });
+                      setSubmitStatus('success');
+                    } catch { setSubmitStatus('error'); }
+                  }}
+                  style={styles.submitBtn}>
+                  {submitStatus === 'loading' ? 'Submitting...' : '🙏 Submit'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={styles.tabs}>
+        <button onClick={() => setViewMode('all')} style={viewMode === 'all' ? styles.tabActive : styles.tab}>📋 View All</button>
+        <button onClick={() => setViewMode('name')} style={viewMode === 'name' ? styles.tabActive : styles.tab}>👤 View by Name</button>
+        <button onClick={() => setViewMode('date')} style={viewMode === 'date' ? styles.tabActive : styles.tab}>📅 View by Date</button>
+        <button onClick={() => setViewMode('status')} style={viewMode === 'status' ? styles.tabActive : styles.tab}>🔍 My Status</button>
+      </div>
+
       {viewMode === 'name' && (
-        <input
-          placeholder="Type a name..."
-          value={nameFilter}
-          onChange={e => setNameFilter(e.target.value)}
-          style={styles.filterInput}
-        />
+        <input placeholder="Type a name..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} style={styles.filterInput} />
       )}
 
       {viewMode === 'date' && (
-        <input
-          type="date"
-          value={dateFilter}
-          onChange={e => setDateFilter(e.target.value)}
-          style={styles.filterInput}
-        />
+        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={styles.filterInput} />
       )}
 
-      {loading ? <p>Loading...</p> :
+      {viewMode === 'status' && (
+        <div style={{marginBottom:'16px'}}>
+          <input
+            placeholder="Type your name to check status..."
+            value={nameFilter}
+            onChange={e => { setNameFilter(e.target.value); setStatusChecked(false); setMyStatuses([]); }}
+            style={styles.filterInput}
+          />
+          <button
+            onClick={async () => {
+              if (!nameFilter.trim()) { alert('Please enter your name.'); return; }
+              setStatusLoading(true);
+              setStatusChecked(false);
+              const data = await checkMyStatus(nameFilter);
+              setMyStatuses(data.requests);
+              setStatusLoading(false);
+              setStatusChecked(true);
+            }}
+            style={styles.submitBtn}>
+            🔍 Check Status
+          </button>
+
+          {statusLoading && <p style={{marginTop:'12px', color:'#6B7280'}}>Checking...</p>}
+
+          {statusChecked && myStatuses.length === 0 && (
+            <div style={{...styles.statusCard, marginTop:'12px', background:'#F9FAFB', border:'1px solid #E2E8F0'}}>
+              <p style={{margin:0}}>No prayer requests found for <strong>{nameFilter}</strong>.</p>
+            </div>
+          )}
+
+          {myStatuses.map((r, i) => (
+            <div key={i} style={{
+              ...styles.statusCard,
+              marginTop:'12px',
+              background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
+              border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
+                <span style={{fontSize:'20px'}}>
+                  {r.status === 'approved' ? '✅' : r.status === 'pending' ? '⏳' : '❌'}
+                </span>
+                <strong>{maskName(r.full_name)}</strong>
+                <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
+              </div>
+              <p style={{margin:'0 0 6px', color:'#555', fontSize:'14px'}}>
+                {r.prayer_message?.slice(0, 60)}...
+              </p>
+              {r.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Approved — visible on the Prayer Wall</p>}
+              {r.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>⏳ Pending — waiting for admin review</p>}
+              {r.status === 'hidden' && (
+                <div>
+                  <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>❌ Not approved</p>
+                  {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'13px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode !== 'status' && (
+        loading ? <p>Loading...</p> :
         displayed.length === 0 ? <p>No prayer requests found.</p> :
         displayed.map(r => <PrayerCard key={r.id} request={r} />)
-      }
+      )}
     </div>
   );
 }
@@ -152,6 +262,32 @@ const styles = {
   },
   filterInput: {
     width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px',
-    marginBottom: '16px', boxSizing: 'border-box'
+    marginBottom: '8px', boxSizing: 'border-box'
+  },
+  submitBtn: {
+    background:'#1B3A6B', color:'white', border:'none', padding:'10px 16px',
+    borderRadius:'6px', cursor:'pointer', fontSize:'14px'
+  },
+  overlay: {
+    position:'fixed', top:0, left:0, width:'100%', height:'100%',
+    background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center',
+    justifyContent:'center', zIndex:1000
+  },
+  popup: {
+    background:'#fff', borderRadius:'12px', padding:'20px',
+    width:'90%', maxWidth:'480px', boxShadow:'0 8px 24px rgba(0,0,0,0.2)'
+  },
+  closeBtn: {
+    background:'none', border:'1px solid #ccc', borderRadius:'6px',
+    padding:'4px 10px', cursor:'pointer', fontSize:'14px'
+  },
+  popupLabel: { display:'block', fontWeight:'600', marginBottom:'4px', fontSize:'14px', color:'#333' },
+  popupInput: {
+    display:'block', width:'100%', padding:'8px', border:'1px solid #ccc',
+    borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'
+  },
+  statusCard: {
+    background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:'8px',
+    padding:'12px', marginBottom:'8px'
   }
 };

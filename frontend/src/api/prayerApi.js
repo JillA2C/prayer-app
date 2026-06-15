@@ -25,9 +25,23 @@ export const getComments = (id) =>
 export const submitComment = (id, data) =>
   axios.post(`${API}/prayer-requests/${id}/comments`, data).then(r=>r.data);
 
+export const checkMyStatus = (name) =>
+  axios.get(`${API}/prayer-requests/my-status?name=${encodeURIComponent(name)}`).then(r=>r.data);
+
+export const submitPrayerRequest = (data) =>
+  axios.post(`${API}/prayer-requests/submit`, data).then(r=>r.data);
 // Admin
 export const adminLogin = (creds) =>
   axios.post(`${API}/admin/login`, creds).then(r=>r.data);
+
+export const adminGetPendingRequests = () =>
+  axios.get(`${API}/admin/requests/pending`, {headers: authHeader()}).then(r=>r.data);
+
+export const adminApproveRequest = (id) =>
+  axios.put(`${API}/admin/requests/${id}/approve`, {}, {headers: authHeader()}).then(r=>r.data);
+
+export const adminRejectRequest = (id, reason='') =>
+  axios.put(`${API}/admin/requests/${id}/reject`, {reason}, {headers: authHeader()}).then(r=>r.data);
 
 export const adminGetRequests = () =>
   axios.get(`${API}/admin/requests`, {headers: authHeader()}).then(r=>r.data);

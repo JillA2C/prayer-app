@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   adminGetRequests, adminAddRequest, adminEditRequest, adminDeleteRequest,
-  adminGetComments, adminApproveComment, adminRejectComment
+  adminGetComments, adminApproveComment, adminRejectComment,
+  adminGetPendingRequests, adminApproveRequest, adminRejectRequest
 } from '../../api/prayerApi';
 
 const CHURCHES = [
-  { id: 'st_michael', name: 'St. Michael Parish', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
-  { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' }
+  { id: 'st_michael', name: 'AMC Carael', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
+  { id: 'holy_trinity', name: 'AMC Paudpod', tagline: 'One Faith, One Family', icon: '✝️' }
 ];
 
 export default function Dashboard() {
@@ -20,6 +21,9 @@ export default function Dashboard() {
   const [form, setForm] = useState({ full_name:'', prayer_message:'' });
   const [editingId, setEditingId] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingId, setRejectingId] = useState(null);
   const [publicView, setPublicView] = useState('all');
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
@@ -29,7 +33,7 @@ export default function Dashboard() {
   const load = async () => {
     const data = await adminGetRequests();
     const filtered = data.requests
-      .filter(r => r.church === church)
+      .filter(r => r.church === church && r.status !== 'pending')
       .map(r => ({
         ...r,
         display_name: r.show_name ? r.full_name : 'Anonymous',
@@ -43,8 +47,13 @@ export default function Dashboard() {
     setPendingComments(data.comments);
   };
 
+  const loadPendingRequests = async () => {
+    const data = await adminGetPendingRequests();
+    setPendingRequests(data.requests);
+  };
+
   useEffect(() => {
-    if (church) { load(); loadComments(); }
+    if (church) { load(); loadComments(); loadPendingRequests(); }
   }, [church]);
 
   const resetForm = () => {
@@ -365,6 +374,46 @@ export default function Dashboard() {
               })()
           )}
 
+          {/* Pending Prayer Requests */}
+          <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>
+            Pending Prayer Requests
+            {pendingRequests.length > 0 && <span style={{background:'#DC2626', color:'white', borderRadius:'12px', padding:'2px 8px', fontSize:'12px', marginLeft:'8px'}}>{pendingRequests.length}</span>}
+          </h3>
+          {pendingRequests.length === 0
+            ? <p style={{color:'#6B7280'}}>No pending prayer requests.</p>
+            : pendingRequests.map(r => (
+              <div key={r.id} style={styles.commentCard}>
+                <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
+                  <strong>{r.full_name}</strong> — {new Date(r.date_added).toLocaleDateString()}
+                </div>
+                <div style={{marginBottom:'8px'}}>{r.prayer_message}</div>
+                {rejectingId === r.id ? (
+                  <div>
+                    <input
+                      placeholder="Reason for rejection (optional)..."
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
+                      style={{...styles.input, marginBottom:'8px'}}
+                    />
+                    <button onClick={async () => {
+                      await adminRejectRequest(r.id, rejectReason);
+                      setRejectingId(null);
+                      setRejectReason('');
+                      loadPendingRequests();
+                    }} style={styles.rejectBtn}>Confirm Reject</button>
+                    <button onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                      style={{...styles.cancelBtn, marginLeft:'8px'}}>Cancel</button>
+                  </div>
+                ) : (
+                  <div>
+                    <button onClick={async () => { await adminApproveRequest(r.id); loadPendingRequests(); load(); }} style={styles.approveBtn}>Approve</button>
+                    <button onClick={() => setRejectingId(r.id)} style={{...styles.rejectBtn, marginLeft:'8px'}}>Reject</button>
+                  </div>
+                )}
+              </div>
+            ))
+          }
+
           {/* Pending Comments */}
           <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>Pending Comments</h3>
           {pendingComments.length === 0
@@ -516,3 +565,4 @@ const styles = {
     borderRadius:'6px', cursor:'pointer', fontSize:'14px', marginTop:'10px', width:'100%'
   }
 };
+

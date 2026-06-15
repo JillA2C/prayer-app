@@ -106,4 +106,38 @@ router.post('/prayer-requests/:id/comments', commentLimiter,
   }
 );
 
+// POST /api/prayer-requests/submit (public submission)
+router.post('/prayer-requests/submit',
+  body('full_name').trim().isLength({ min:2, max:120 }),
+  body('prayer_message').trim().isLength({ min:10 }),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const { full_name, prayer_message } = req.body;
+    await pool.query(
+      `INSERT INTO prayer_requests
+         (full_name, prayer_title, prayer_message, show_name, status)
+       VALUES ($1,$2,$3,$4,'pending')`,
+      [full_name, 'Public Prayer Request', prayer_message, true]
+    );
+    res.status(201).json({ message: 'Prayer request submitted! It will appear after review.' });
+  }
+);
+
+// GET /api/prayer-requests/my-status
+router.get('/prayer-requests/my-status', async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: 'Name required' });
+  const { rows } = await pool.query(
+    `SELECT id, full_name, prayer_message, status, reject_reason, date_added
+     FROM prayer_requests 
+     WHERE LOWER(full_name) LIKE LOWER($1)
+     AND prayer_title = 'Public Prayer Request'
+     ORDER BY date_added DESC`,
+    [`%${name}%`]
+  );
+  res.json({ requests: rows });
+});
+
 module.exports = router;
