@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [publicView, setPublicView] = useState('all');
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
+  const [showTextLayout, setShowTextLayout] = useState(false);
   const navigate = useNavigate();
 
   const load = async () => {
@@ -258,9 +259,69 @@ export default function Dashboard() {
           )}
 
           {/* Prayer Requests Table */}
-          {selectedDate && <h3 style={{color:'#1B3A6B', marginTop:'24px'}}>
-            Prayer Requests — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
-          </h3>}
+          {selectedDate && (
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'24px'}}>
+              <h3 style={{color:'#1B3A6B', margin:0}}>
+                Prayer Requests — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+              </h3>
+              <button onClick={() => setShowTextLayout(true)} style={styles.textLayoutBtn}>
+                📄 Text Layout
+              </button>
+            </div>
+          )}
+
+          {/* Text Layout Popup */}
+          {showTextLayout && (
+            <div style={styles.overlay}>
+              <div style={styles.popup}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
+                  <h3 style={{margin:0, color:'#1B3A6B'}}>📄 Text Layout</h3>
+                  <button onClick={() => setShowTextLayout(false)} style={styles.closeBtn}>✕ Close</button>
+                </div>
+                <textarea
+                  readOnly
+                  value={(() => {
+                    const dateStr = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+                    const churchName = churchInfo.name.toUpperCase();
+                    let text = `================================\n`;
+                    text += `${churchName}\n`;
+                    text += `PRAYER REQUEST\n`;
+                    text += `${dateStr}\n`;
+                    text += `================================\n\n`;
+                    requestsForDate.forEach((r, i) => {
+                      text += `${i + 1}. ${r.full_name} — ${r.prayer_message}\n`;
+                    });
+                    text += `\n================================\n`;
+                    text += `Total Prayers: ${requestsForDate.length}\n`;
+                    text += `================================`;
+                    return text;
+                  })()}
+                  style={{width:'100%', height:'300px', padding:'12px', fontFamily:'monospace', fontSize:'14px', border:'1px solid #ccc', borderRadius:'6px', resize:'none', boxSizing:'border-box'}}
+                />
+                <button
+                  onClick={() => {
+                    const dateStr = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+                    const churchName = churchInfo.name.toUpperCase();
+                    let text = `================================\n`;
+                    text += `${churchName}\n`;
+                    text += `PRAYER REQUEST\n`;
+                    text += `${dateStr}\n`;
+                    text += `================================\n\n`;
+                    requestsForDate.forEach((r, i) => {
+                      text += `${i + 1}. ${r.full_name} — ${r.prayer_message}\n`;
+                    });
+                    text += `\n================================\n`;
+                    text += `Total Prayers: ${requestsForDate.length}\n`;
+                    text += `================================`;
+                    navigator.clipboard.writeText(text);
+                    alert('Copied to clipboard!');
+                  }}
+                  style={styles.copyBtn}>
+                  📋 Copy All
+                </button>
+              </div>
+            </div>
+          )}
           {selectedDate && (requestsForDate.length === 0
             ? <p style={{color:'#6B7280'}}>No entries for this date.</p>
             : (() => {
@@ -432,5 +493,26 @@ const styles = {
   datePillCount: {
     background:'#E8F0FE', color:'#1B3A6B', borderRadius:'12px',
     padding:'2px 10px', fontSize:'12px', fontWeight:'normal'
+  },
+  textLayoutBtn: {
+    background:'#1B3A6B', color:'white', border:'none', padding:'8px 14px',
+    borderRadius:'6px', cursor:'pointer', fontSize:'13px'
+  },
+  overlay: {
+    position:'fixed', top:0, left:0, width:'100%', height:'100%',
+    background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center',
+    justifyContent:'center', zIndex:1000
+  },
+  popup: {
+    background:'#fff', borderRadius:'12px', padding:'20px',
+    width:'90%', maxWidth:'500px', boxShadow:'0 8px 24px rgba(0,0,0,0.2)'
+  },
+  closeBtn: {
+    background:'none', border:'1px solid #ccc', borderRadius:'6px',
+    padding:'6px 12px', cursor:'pointer', fontSize:'13px'
+  },
+  copyBtn: {
+    background:'#16A34A', color:'white', border:'none', padding:'10px 16px',
+    borderRadius:'6px', cursor:'pointer', fontSize:'14px', marginTop:'10px', width:'100%'
   }
 };
