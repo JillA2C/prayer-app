@@ -8,8 +8,9 @@ import {
 } from '../../api/prayerApi';
 
 const CHURCHES = [
-  { id: 'st_michael', name: 'AMC Carael', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
-  { id: 'holy_trinity', name: 'AMC Paudpod', tagline: 'One Faith, One Family', icon: '✝️' }
+  { id: 'st_michael', name: 'St. Michael Parish', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
+  { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' },
+  { id: 'public', name: 'Public Prayers', tagline: 'Open prayer wall for everyone', icon: '🌍' }
 ];
 
 export default function Dashboard() {

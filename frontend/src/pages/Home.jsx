@@ -4,7 +4,8 @@ import { getRequests, submitPrayerRequest, checkMyStatus } from '../api/prayerAp
 
 const CHURCHES = [
   { id: 'st_michael', name: 'St. Michael Parish', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
-  { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' }
+  { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' },
+  { id: 'public', name: 'Public Prayers', tagline: 'Open prayer wall for everyone', icon: '🌍' }
 ];
 
 const maskName = (name) => {
@@ -134,7 +135,7 @@ export default function Home() {
                       await submitPrayerRequest({
                         full_name: visitorName || 'Anonymous',
                         prayer_message: submitForm.prayer_message,
-                        church
+                        church: 'public'
                       });
                       setSubmitStatus('success');
                     } catch { setSubmitStatus('error'); }

@@ -117,8 +117,8 @@ router.post('/prayer-requests/submit',
     const { full_name, prayer_message } = req.body;
     await pool.query(
       `INSERT INTO prayer_requests
-         (full_name, prayer_title, prayer_message, show_name, status)
-       VALUES ($1,$2,$3,$4,'pending')`,
+         (full_name, prayer_title, prayer_message, show_name, status, church)
+       VALUES ($1,$2,$3,$4,'pending','public')`,
       [full_name, 'Public Prayer Request', prayer_message, true]
     );
     res.status(201).json({ message: 'Prayer request submitted! It will appear after review.' });
