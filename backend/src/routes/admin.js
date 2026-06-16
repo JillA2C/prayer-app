@@ -116,14 +116,14 @@ router.put('/requests/:id/approve', auth, async (req, res) => {
   res.json({ request: rows[0] });
 });
 
-// PUT /api/admin/requests/:id/reject
-router.put('/requests/:id/reject', auth, async (req, res) => {
+// PUT /api/admin/comments/:id/reject
+router.put('/comments/:id/reject', auth, async (req, res) => {
   const { reason = '' } = req.body;
   const { rows } = await pool.query(
-    `UPDATE prayer_requests SET status='hidden', reject_reason=$1 WHERE id=$2 RETURNING *`,
+    `UPDATE comments SET status='rejected', reject_reason=$1 WHERE id=$2 RETURNING *`,
     [reason, req.params.id]
   );
-  res.json({ request: rows[0] });
+  res.json({ comment: rows[0] });
 });
 
 // GET /api/admin/comments

@@ -29,6 +29,7 @@ export default function Home() {
   const [myStatuses, setMyStatuses] = useState([]);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusChecked, setStatusChecked] = useState(false);
+  const [myCommentStatuses, setMyCommentStatuses] = useState([]);
   const visitorName = localStorage.getItem('visitorName') || '';
 
   const load = async (churchId) => {
@@ -89,11 +90,13 @@ export default function Home() {
         </button>
       </header>
 
-      <div style={{textAlign:'right', marginBottom:'12px'}}>
-        <button onClick={() => setShowSubmitForm(true)} style={styles.submitBtn}>
-          🙏 Submit a Prayer Request
-        </button>
-      </div>
+      {church === 'public' && (
+        <div style={{textAlign:'right', marginBottom:'12px'}}>
+          <button onClick={() => setShowSubmitForm(true)} style={styles.submitBtn}>
+            🙏 Submit a Prayer Request
+          </button>
+        </div>
+      )}
 
       {showSubmitForm && (
         <div style={styles.overlay}>
@@ -179,6 +182,7 @@ export default function Home() {
               setStatusChecked(false);
               const data = await checkMyStatus(nameFilter);
               setMyStatuses(data.requests);
+              setMyCommentStatuses(data.comments || []);
               setStatusLoading(false);
               setStatusChecked(true);
             }}
@@ -221,6 +225,33 @@ export default function Home() {
               )}
             </div>
           ))}
+
+          {myCommentStatuses.length > 0 && (
+            <div style={{marginTop:'16px'}}>
+              <h4 style={{color:'#1B3A6B', marginBottom:'8px'}}>💬 Your Comments/Encouragements</h4>
+              {myCommentStatuses.map((c, i) => (
+                <div key={i} style={{
+                  padding:'12px', borderRadius:'8px', marginBottom:'8px',
+                  background: c.status === 'approved' ? '#F0FDF4' : c.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
+                  border: c.status === 'approved' ? '1px solid #BBF7D0' : c.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+                }}>
+                  <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
+                    On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}
+                  </div>
+                  <p style={{margin:'0 0 4px', fontSize:'14px'}}>{c.comment_text}</p>
+                  {c.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Approved — visible</p>}
+                  {c.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>⏳ Pending review</p>}
+                  {c.status === 'rejected' && (
+                    <div>
+                      <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>❌ Not approved</p>
+                      {c.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.reject_reason}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
         </div>
       )}
 
@@ -229,6 +260,8 @@ export default function Home() {
         displayed.length === 0 ? <p>No prayer requests found.</p> :
         displayed.map(r => <PrayerCard key={r.id} request={r} />)
       )}
+
+      
     </div>
   );
 }

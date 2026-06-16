@@ -25,6 +25,8 @@ export default function Dashboard() {
   const [saveStatus, setSaveStatus] = useState('idle');
   const [pendingRequests, setPendingRequests] = useState([]);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectCommentReason, setRejectCommentReason] = useState('');
+  const [rejectingCommentId, setRejectingCommentId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [publicView, setPublicView] = useState('all');
   const [publicSearch, setPublicSearch] = useState('');
@@ -474,8 +476,29 @@ export default function Dashboard() {
                   On: <strong>{c.prayer_title}</strong> — by {c.visitor_name}
                 </div>
                 <div style={{marginBottom:'8px'}}>{c.comment_text}</div>
-                <button onClick={() => handleApprove(c.id)} style={styles.approveBtn}>Approve</button>
-                <button onClick={() => handleReject(c.id)} style={styles.rejectBtn}>Reject</button>
+                {rejectingCommentId === c.id ? (
+                  <div>
+                    <input
+                      placeholder="Reason for rejection (optional)..."
+                      value={rejectCommentReason}
+                      onChange={e => setRejectCommentReason(e.target.value)}
+                      style={{...styles.input, marginBottom:'8px'}}
+                    />
+                    <button onClick={async () => {
+                      await adminRejectComment(c.id, rejectCommentReason);
+                      setRejectingCommentId(null);
+                      setRejectCommentReason('');
+                      loadComments();
+                    }} style={styles.rejectBtn}>Confirm Reject</button>
+                    <button onClick={() => { setRejectingCommentId(null); setRejectCommentReason(''); }}
+                      style={{...styles.cancelBtn, marginLeft:'8px'}}>Cancel</button>
+                  </div>
+                ) : (
+                  <div>
+                    <button onClick={() => handleApprove(c.id)} style={styles.approveBtn}>Approve</button>
+                    <button onClick={() => setRejectingCommentId(c.id)} style={{...styles.rejectBtn, marginLeft:'8px'}}>Reject</button>
+                  </div>
+                )}
               </div>
             ))
           }

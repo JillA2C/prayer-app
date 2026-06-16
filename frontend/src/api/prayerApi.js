@@ -61,5 +61,5 @@ export const adminGetComments = (status='pending') =>
 export const adminApproveComment = (id) =>
   axios.put(`${API}/admin/comments/${id}/approve`, {}, {headers: authHeader()}).then(r=>r.data);
 
-export const adminRejectComment = (id) =>
-  axios.put(`${API}/admin/comments/${id}/reject`, {}, {headers: authHeader()}).then(r=>r.data);
+export const adminRejectComment = (id, reason='') =>
+  axios.put(`${API}/admin/comments/${id}/reject`, {reason}, {headers: authHeader()}).then(r=>r.data);

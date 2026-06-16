@@ -129,7 +129,8 @@ router.post('/prayer-requests/submit',
 router.get('/prayer-requests/my-status', async (req, res) => {
   const { name } = req.query;
   if (!name) return res.status(400).json({ error: 'Name required' });
-  const { rows } = await pool.query(
+  
+  const { rows: prayers } = await pool.query(
     `SELECT id, full_name, prayer_message, status, reject_reason, date_added
      FROM prayer_requests 
      WHERE LOWER(full_name) LIKE LOWER($1)
@@ -137,7 +138,17 @@ router.get('/prayer-requests/my-status', async (req, res) => {
      ORDER BY date_added DESC`,
     [`%${name}%`]
   );
-  res.json({ requests: rows });
-});
 
+  const { rows: comments } = await pool.query(
+    `SELECT c.id, c.visitor_name, c.comment_text, c.status, c.reject_reason, 
+            c.submitted_at, pr.prayer_title
+     FROM comments c
+     JOIN prayer_requests pr ON c.request_id = pr.id
+     WHERE LOWER(c.visitor_name) LIKE LOWER($1)
+     ORDER BY c.submitted_at DESC`,
+    [`%${name}%`]
+  );
+
+  res.json({ requests: prayers, comments });
+});
 module.exports = router;
