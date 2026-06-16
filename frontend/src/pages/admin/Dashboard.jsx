@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   adminGetRequests, adminAddRequest, adminEditRequest, adminDeleteRequest,
   adminGetComments, adminApproveComment, adminRejectComment,
-  adminGetPendingRequests, adminApproveRequest, adminRejectRequest
+  adminGetPendingRequests, adminApproveRequest, adminRejectRequest,
+  checkMyStatus
 } from '../../api/prayerApi';
 
 const CHURCHES = [
@@ -28,6 +29,9 @@ export default function Dashboard() {
   const [publicView, setPublicView] = useState('all');
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
+  const [myStatuses, setMyStatuses] = useState([]);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusChecked, setStatusChecked] = useState(false);
   const [showTextLayout, setShowTextLayout] = useState(false);
   const navigate = useNavigate();
 
@@ -342,36 +346,81 @@ export default function Dashboard() {
                   if (!groups[dateKey]) groups[dateKey] = [];
                   groups[dateKey].push(r);
                 });
-                return Object.entries(groups).map(([date, entries]) => (
-                  <div key={date} style={{marginBottom:'20px'}}>
-                    <div style={{background:'#1B3A6B', color:'white', padding:'8px 12px', borderRadius:'6px 6px 0 0', fontWeight:'600', fontSize:'14px'}}>
-                      📅 {date} — {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                return Object.entries(groups).map(([date, entries]) => {
+                  const approved = entries.filter(r => r.status === 'approved');
+                  const rejected = entries.filter(r => r.status === 'hidden');
+                  return (
+                    <div key={date} style={{marginBottom:'20px'}}>
+                      <div style={{background:'#1B3A6B', color:'white', padding:'8px 12px', borderRadius:'6px 6px 0 0', fontWeight:'600', fontSize:'14px'}}>
+                        📅 {date} — {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+                      </div>
+
+                      {/* Approved Table */}
+                      <div style={{marginBottom:'8px'}}>
+                        <div style={{background:'#16A34A', color:'white', padding:'6px 12px', fontSize:'13px', fontWeight:'600'}}>
+                          ✅ Approved ({approved.length})
+                        </div>
+                        {approved.length === 0
+                          ? <p style={{padding:'8px', color:'#6B7280', fontSize:'13px', margin:0}}>No approved entries.</p>
+                          : <table style={{width:'100%', borderCollapse:'collapse', border:'1px solid #E2E8F0'}}>
+                              <thead>
+                                <tr style={{background:'#F0FDF4'}}>
+                                  <th style={styles.th}>Name</th>
+                                  <th style={styles.th}>Prayer</th>
+                                  <th style={styles.th}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {approved.map(r => (
+                                  <tr key={r.id} style={{borderBottom:'1px solid #E2E8F0'}}>
+                                    <td style={styles.td}>{r.full_name}</td>
+                                    <td style={styles.td}>{r.prayer_message?.slice(0, 60)}...</td>
+                                    <td style={styles.td}>
+                                      <button onClick={() => handleEdit(r)} style={{marginRight:'6px'}}>Edit</button>
+                                      <button onClick={() => handleDelete(r.id)} style={{color:'#DC2626'}}>Delete</button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                        }
+                      </div>
+
+                      {/* Rejected Table */}
+                      <div>
+                        <div style={{background:'#DC2626', color:'white', padding:'6px 12px', fontSize:'13px', fontWeight:'600'}}>
+                          ❌ Rejected ({rejected.length})
+                        </div>
+                        {rejected.length === 0
+                          ? <p style={{padding:'8px', color:'#6B7280', fontSize:'13px', margin:0}}>No rejected entries.</p>
+                          : <table style={{width:'100%', borderCollapse:'collapse', border:'1px solid #E2E8F0'}}>
+                              <thead>
+                                <tr style={{background:'#FEF2F2'}}>
+                                  <th style={styles.th}>Name</th>
+                                  <th style={styles.th}>Prayer</th>
+                                  <th style={styles.th}>Reason</th>
+                                  <th style={styles.th}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rejected.map(r => (
+                                  <tr key={r.id} style={{borderBottom:'1px solid #E2E8F0'}}>
+                                    <td style={styles.td}>{r.full_name}</td>
+                                    <td style={styles.td}>{r.prayer_message?.slice(0, 60)}...</td>
+                                    <td style={styles.td}>{r.reject_reason || '—'}</td>
+                                    <td style={styles.td}>
+                                      <button onClick={() => handleEdit(r)} style={{marginRight:'6px'}}>Edit</button>
+                                      <button onClick={() => handleDelete(r.id)} style={{color:'#DC2626'}}>Delete</button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                        }
+                      </div>
                     </div>
-                    <table style={{width:'100%', borderCollapse:'collapse', border:'1px solid #E2E8F0'}}>
-                      <thead>
-                        <tr style={{background:'#F4F7FB'}}>
-                          <th style={styles.th}>Name</th>
-                          <th style={styles.th}>Prayer</th>
-                          <th style={styles.th}>Status</th>
-                          <th style={styles.th}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {entries.map(r => (
-                          <tr key={r.id} style={{borderBottom:'1px solid #E2E8F0'}}>
-                            <td style={styles.td}>{r.full_name}</td>
-                            <td style={styles.td}>{r.prayer_message?.slice(0, 60)}...</td>
-                            <td style={styles.td}>{r.status}</td>
-                            <td style={styles.td}>
-                              <button onClick={() => handleEdit(r)} style={{marginRight:'6px'}}>Edit</button>
-                              <button onClick={() => handleDelete(r.id)} style={{color:'#DC2626'}}>Delete</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ));
+                  );
+                });
               })()
           )}
 
@@ -453,8 +502,11 @@ export default function Dashboard() {
               style={publicView === 'date' ? styles.tabActive : styles.tab}>
               📅 By Date
             </button>
+            <button onClick={() => setPublicView('status')}
+              style={publicView === 'status' ? styles.tabActive : styles.tab}>
+              🔍 My Status
+            </button>
           </div>
-
           {publicView === 'name' && (
             <input
               placeholder="Type a name..."
@@ -473,22 +525,71 @@ export default function Dashboard() {
             />
           )}
 
-          {(() => {
-            let displayed = requests;
-            if (publicView === 'name' && publicSearch) {
-              displayed = requests.filter(r =>
-                r.display_name.toLowerCase().includes(publicSearch.toLowerCase())
-              );
-            }
-            if (publicView === 'date' && publicDateFilter) {
-              displayed = requests.filter(r =>
-                new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter
-              );
-            }
-            return displayed.length === 0
-              ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
-              : displayed.map(r => <PrayerCard key={r.id} request={r} />);
-          })()}
+          {publicView === 'status' ? (
+            <div>
+              <input
+                placeholder="Type a name to check status..."
+                value={publicSearch}
+                onChange={e => setPublicSearch(e.target.value)}
+                style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'8px', boxSizing:'border-box'}}
+              />
+              <button
+                onClick={async () => {
+                  if (!publicSearch.trim()) return;
+                  setStatusLoading(true);
+                  const data = await checkMyStatus(publicSearch);
+                  setMyStatuses(data.requests);
+                  setStatusLoading(false);
+                  setStatusChecked(true);
+                }}
+                style={styles.saveBtn}>
+                🔍 Check Status
+              </button>
+              {statusLoading && <p style={{color:'#6B7280', marginTop:'8px'}}>Checking...</p>}
+              {statusChecked && myStatuses.length === 0 && (
+                <p style={{color:'#6B7280', marginTop:'8px'}}>No prayer requests found for <strong>{publicSearch}</strong>.</p>
+              )}
+              {myStatuses.map((r, i) => (
+                <div key={i} style={{
+                  padding:'12px', borderRadius:'8px', marginTop:'8px',
+                  background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
+                  border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+                }}>
+                  <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
+                    <span>{r.status === 'approved' ? '✅' : r.status === 'pending' ? '⏳' : '❌'}</span>
+                    <strong>{r.full_name}</strong>
+                    <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{margin:'0 0 4px', fontSize:'14px'}}>{r.prayer_message?.slice(0,60)}...</p>
+                  {r.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Approved</p>}
+                  {r.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>⏳ Pending review</p>}
+                  {r.status === 'hidden' && (
+                    <div>
+                      <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>❌ Not approved</p>
+                      {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            (() => {
+              let displayed = requests;
+              if (publicView === 'name' && publicSearch) {
+                displayed = requests.filter(r =>
+                  r.display_name.toLowerCase().includes(publicSearch.toLowerCase())
+                );
+              }
+              if (publicView === 'date' && publicDateFilter) {
+                displayed = requests.filter(r =>
+                  new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter
+                );
+              }
+              return displayed.length === 0
+                ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
+                : displayed.map(r => <PrayerCard key={r.id} request={r} />);
+            })()
+          )}
         </>
       )}
     </div>
