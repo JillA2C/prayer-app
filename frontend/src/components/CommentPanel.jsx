@@ -48,7 +48,7 @@ export default function CommentPanel({ requestId }) {
       <div style={{marginTop:'10px'}}>
         <h4 style={{margin:'0 0 6px'}}>Leave an Encouragement</h4>
         {status === 'success' ? (
-          <p style={{color:'#16A34A'}}>Thank you! Your encouragement will appear shortly.</p>
+          <p style={{color:'#16A34A'}}>Thank you! Your encouragement is now visible. 🙏</p>
         ) : (
           <>
             <div style={{fontSize:'13px', color:'#555', marginBottom:'8px'}}>

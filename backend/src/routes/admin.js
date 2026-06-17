@@ -128,31 +128,22 @@ router.put('/comments/:id/reject', auth, async (req, res) => {
 
 // GET /api/admin/comments
 router.get('/comments', auth, async (req, res) => {
-  const { status = 'pending' } = req.query;
   const { rows } = await pool.query(
-    `SELECT c.*, pr.prayer_title
+    `SELECT c.*, pr.prayer_title, pr.church
      FROM comments c
      JOIN prayer_requests pr ON c.request_id = pr.id
-     WHERE c.status = $1 ORDER BY c.submitted_at DESC`, [status]
+     ORDER BY c.submitted_at DESC`
   );
   res.json({ comments: rows });
 });
 
-// PUT /api/admin/comments/:id/approve
-router.put('/comments/:id/approve', auth, async (req, res) => {
-  const { rows } = await pool.query(
-    `UPDATE comments SET status='approved', approved_at=NOW()
-     WHERE id=$1 RETURNING *`, [req.params.id]
+// DELETE /api/admin/comments/:id (with optional reason)
+router.delete('/comments/:id', auth, async (req, res) => {
+  const { reason = '' } = req.body;
+  const { rowCount } = await pool.query(
+    `DELETE FROM comments WHERE id=$1`, [req.params.id]
   );
-  res.json({ comment: rows[0] });
+  if (!rowCount) return res.status(404).json({ error: 'Not found' });
+  res.json({ message: 'Comment deleted.', reason });
 });
-
-// PUT /api/admin/comments/:id/reject
-router.put('/comments/:id/reject', auth, async (req, res) => {
-  const { rows } = await pool.query(
-    `UPDATE comments SET status='rejected' WHERE id=$1 RETURNING *`, [req.params.id]
-  );
-  res.json({ comment: rows[0] });
-});
-
 module.exports = router;

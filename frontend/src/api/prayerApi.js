@@ -58,8 +58,5 @@ export const adminDeleteRequest = (id) =>
 export const adminGetComments = (status='pending') =>
   axios.get(`${API}/admin/comments?status=${status}`, {headers: authHeader()}).then(r=>r.data);
 
-export const adminApproveComment = (id) =>
-  axios.put(`${API}/admin/comments/${id}/approve`, {}, {headers: authHeader()}).then(r=>r.data);
-
-export const adminRejectComment = (id, reason='') =>
-  axios.put(`${API}/admin/comments/${id}/reject`, {reason}, {headers: authHeader()}).then(r=>r.data);
+export const adminDeleteComment = (id, reason='') =>
+  axios.delete(`${API}/admin/comments/${id}`, {data: {reason}, headers: authHeader()}).then(r=>r.data);

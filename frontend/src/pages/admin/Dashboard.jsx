@@ -3,14 +3,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   adminGetRequests, adminAddRequest, adminEditRequest, adminDeleteRequest,
-  adminGetComments, adminApproveComment, adminRejectComment,
+  adminGetComments, adminDeleteComment,
   adminGetPendingRequests, adminApproveRequest, adminRejectRequest,
   checkMyStatus
 } from '../../api/prayerApi';
 
 const CHURCHES = [
-  { id: 'st_michael', name: 'St. Michael Parish', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
-  { id: 'holy_trinity', name: 'Holy Trinity Chapel', tagline: 'One Faith, One Family', icon: '✝️' },
+  { id: 'st_michael', name: 'AMC Paudpod', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
+  { id: 'holy_trinity', name: 'AMC Carael', tagline: 'One Faith, One Family', icon: '✝️' },
   { id: 'public', name: 'Public Prayers', tagline: 'Open prayer wall for everyone', icon: '🌍' }
 ];
 
@@ -50,7 +50,7 @@ export default function Dashboard() {
     setRequests(filtered);
   };
   const loadComments = async () => {
-    const data = await adminGetComments('pending');
+    const data = await adminGetComments();
     setPendingComments(data.comments);
   };
 
@@ -109,13 +109,8 @@ export default function Dashboard() {
     load();
   };
 
-  const handleApprove = async (id) => {
-    await adminApproveComment(id);
-    loadComments();
-  };
-
-  const handleReject = async (id) => {
-    await adminRejectComment(id);
+  const handleDeleteComment = async (id, reason='') => {
+    await adminDeleteComment(id, reason);
     loadComments();
   };
 
@@ -468,37 +463,40 @@ export default function Dashboard() {
             ))
           }
 
-          {/* Pending Comments */}
-          <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>Pending Comments</h3>
+          {/* Comments */}
+          <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>
+            💬 Comments
+            {pendingComments.length > 0 && <span style={{background:'#1B3A6B', color:'white', borderRadius:'12px', padding:'2px 8px', fontSize:'12px', marginLeft:'8px'}}>{pendingComments.length}</span>}
+          </h3>
           {pendingComments.length === 0
-            ? <p style={{color:'#6B7280'}}>No pending comments.</p>
+            ? <p style={{color:'#6B7280'}}>No comments yet.</p>
             : pendingComments.map(c => (
               <div key={c.id} style={styles.commentCard}>
                 <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
                   On: <strong>{c.prayer_title}</strong> — by {c.visitor_name}
+                  <span style={{marginLeft:'8px', fontSize:'11px', background:'#E8F0FE', color:'#1B3A6B', padding:'2px 6px', borderRadius:'4px'}}>{c.church === 'st_michael' ? 'AMC Paudpod' : c.church === 'holy_trinity' ? 'AMC Carael' : 'Public'}</span>
                 </div>
                 <div style={{marginBottom:'8px'}}>{c.comment_text}</div>
                 {rejectingCommentId === c.id ? (
                   <div>
                     <input
-                      placeholder="Reason for rejection (optional)..."
+                      placeholder="Reason for deletion (optional)..."
                       value={rejectCommentReason}
                       onChange={e => setRejectCommentReason(e.target.value)}
                       style={{...styles.input, marginBottom:'8px'}}
                     />
                     <button onClick={async () => {
-                      await adminRejectComment(c.id, rejectCommentReason);
+                      await handleDeleteComment(c.id, rejectCommentReason);
                       setRejectingCommentId(null);
                       setRejectCommentReason('');
-                      loadComments();
-                    }} style={styles.rejectBtn}>Confirm Reject</button>
+                    }} style={styles.rejectBtn}>Confirm Delete</button>
                     <button onClick={() => { setRejectingCommentId(null); setRejectCommentReason(''); }}
                       style={{...styles.cancelBtn, marginLeft:'8px'}}>Cancel</button>
                   </div>
                 ) : (
-                  <div>
-                    <button onClick={() => handleApprove(c.id)} style={styles.approveBtn}>Approve</button>
-                    <button onClick={() => setRejectingCommentId(c.id)} style={{...styles.rejectBtn, marginLeft:'8px'}}>Reject</button>
+                  <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                    <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Visible</span>
+                    <button onClick={() => setRejectingCommentId(c.id)} style={styles.rejectBtn}>🗑️ Delete</button>
                   </div>
                 )}
               </div>

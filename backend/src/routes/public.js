@@ -97,11 +97,11 @@ router.post('/prayer-requests/:id/comments', commentLimiter,
 
     const { comment_text, visitor_name = 'Anonymous' } = req.body;
     await pool.query(
-      `INSERT INTO comments (request_id, visitor_name, comment_text)
-       VALUES ($1, $2, $3)`, [req.params.id, visitor_name, comment_text]
+      `INSERT INTO comments (request_id, visitor_name, comment_text, status, submitted_at)
+       VALUES ($1, $2, $3, 'approved', NOW())`, [req.params.id, visitor_name, comment_text]
     );
     res.status(201).json({
-      message: 'Thank you! Your encouragement will appear shortly.'
+      message: 'Thank you! Your encouragement is now visible.'
     });
   }
 );
@@ -140,8 +140,8 @@ router.get('/prayer-requests/my-status', async (req, res) => {
   );
 
   const { rows: comments } = await pool.query(
-    `SELECT c.id, c.visitor_name, c.comment_text, c.status, c.reject_reason, 
-            c.submitted_at, pr.prayer_title
+    `SELECT c.id, c.visitor_name, c.comment_text, c.status, c.reject_reason,
+            c.submitted_at, pr.prayer_title, pr.church
      FROM comments c
      JOIN prayer_requests pr ON c.request_id = pr.id
      WHERE LOWER(c.visitor_name) LIKE LOWER($1)
