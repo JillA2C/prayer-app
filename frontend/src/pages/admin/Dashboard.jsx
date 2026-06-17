@@ -340,7 +340,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-           {selectedDate && church !== 'public' && ((requestsForDate.length === 0
+           {selectedDate && church !== 'public' && (requestsForDate.length === 0
             ? <p style={{color:'#6B7280'}}>No entries for this date.</p>
             : (() => {
                 // Group by date
