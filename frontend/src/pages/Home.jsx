@@ -174,7 +174,7 @@ export default function Home() {
           <input
             placeholder="Type your name to check status..."
             value={nameFilter}
-            onChange={e => { setNameFilter(e.target.value); setStatusChecked(false); setMyStatuses([]); }}
+            onChange={e => { setNameFilter(e.target.value); setStatusChecked(false); setMyStatuses([]); setMyCommentStatuses([]); }}
             style={styles.filterInput}
           />
           <button
@@ -194,43 +194,7 @@ export default function Home() {
 
           {statusLoading && <p style={{marginTop:'12px', color:'#6B7280'}}>Checking...</p>}
 
-          {statusChecked && myStatuses.length === 0 && (
-            <div style={{...styles.statusCard, marginTop:'12px', background:'#F9FAFB', border:'1px solid #E2E8F0'}}>
-              <p style={{margin:0}}>No prayer requests found for <strong>{nameFilter}</strong>.</p>
-            </div>
-          )}
-
-          {myStatuses.map((r, i) => (
-            <div key={i} style={{
-              ...styles.statusCard,
-              marginTop:'12px',
-              background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
-              border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
-            }}>
-              <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
-                <span style={{fontSize:'20px'}}>
-                  {r.status === 'approved' ? '✅' : r.status === 'pending' ? '⏳' : '❌'}
-                </span>
-                <strong>{maskName(r.full_name)}</strong>
-                <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
-              </div>
-              <p style={{margin:'0 0 6px', color:'#555', fontSize:'14px'}}>
-                {r.prayer_message?.slice(0, 60)}...
-              </p>
-              {r.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Approved — visible on the Prayer Wall</p>}
-              {r.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>⏳ Pending — waiting for admin review</p>}
-              {r.status === 'hidden' && (
-                <div>
-                  <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>❌ Not approved</p>
-                  {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'13px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
-                </div>
-              )}
-            </div>
-          ))}
-
-          
-          
-        {statusChecked && myStatuses.length === 0 && myCommentStatuses.length === 0 && (
+          {statusChecked && myStatuses.length === 0 && myCommentStatuses.length === 0 && (
             <div style={{...styles.statusCard, marginTop:'12px', background:'#F9FAFB', border:'1px solid #E2E8F0'}}>
               <p style={{margin:0}}>No records found for <strong>{nameFilter}</strong>.</p>
             </div>

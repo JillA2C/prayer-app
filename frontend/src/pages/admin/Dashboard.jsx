@@ -40,7 +40,8 @@ export default function Dashboard() {
   const load = async () => {
     const data = await adminGetRequests();
     const filtered = data.requests
-      .filter(r => r.church === church && r.status !== 'pending')
+      .filter(r => r.church === church)
+      .filter(r => church === 'public' ? true : r.status !== 'pending')
       .map(r => ({
         ...r,
         display_name: r.show_name ? r.full_name : 'Anonymous',
@@ -48,7 +49,6 @@ export default function Dashboard() {
       }));
     setRequests(filtered);
   };
-
   const loadComments = async () => {
     const data = await adminGetComments('pending');
     setPendingComments(data.comments);
@@ -340,7 +340,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-           {selectedDate && church !== 'public' && (requestsForDate.length === 0
+          {selectedDate && (requestsForDate.length === 0
             ? <p style={{color:'#6B7280'}}>No entries for this date.</p>
             : (() => {
                 // Group by date
@@ -352,7 +352,7 @@ export default function Dashboard() {
                 });
                 return Object.entries(groups).map(([date, entries]) => {
                   const approved = entries.filter(r => r.status === 'approved');
-                  const rejected = entries.filter(r => r.status === 'hidden');
+                  const rejected = church === 'public' ? entries.filter(r => r.status === 'hidden') : [];
                   return (
                     <div key={date} style={{marginBottom:'20px'}}>
                       <div style={{background:'#1B3A6B', color:'white', padding:'8px 12px', borderRadius:'6px 6px 0 0', fontWeight:'600', fontSize:'14px'}}>
@@ -617,6 +617,9 @@ export default function Dashboard() {
           )}
         </>
       )}
+    <footer style={{textAlign:'center', marginTop:'40px', paddingTop:'20px', borderTop:'1px solid #E2E8F0', color:'#6B7280', fontSize:'13px'}}>
+        © 2026 Prayer Wall — All Rights Reserved
+      </footer>
     </div>
   );
 }
