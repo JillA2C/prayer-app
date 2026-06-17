@@ -8,7 +8,8 @@ export default function CommentPanel({ requestId }) {
   const [status, setStatus] = useState('idle');
 
   const isAdmin = !!localStorage.getItem('adminToken');
-  const visitorName = isAdmin ? 'Admin' : (localStorage.getItem('visitorName') || 'Anonymous');
+  const rawName = localStorage.getItem('visitorName') || 'Anonymous';
+  const visitorName = (isAdmin && window.location.pathname.startsWith('/admin')) ? 'Admin' : rawName;
 
   useEffect(() => {
     getComments(requestId).then(d => setComments(d.comments));

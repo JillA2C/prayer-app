@@ -280,9 +280,11 @@ export default function Dashboard() {
               <h3 style={{color:'#1B3A6B', margin:0}}>
                 Prayer Requests — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
               </h3>
-              <button onClick={() => setShowTextLayout(true)} style={styles.textLayoutBtn}>
-                📄 Text Layout
-              </button>
+              {church !== 'public' && (
+                <button onClick={() => setShowTextLayout(true)} style={styles.textLayoutBtn}>
+                  📄 Text Layout
+                </button>
+              )}
             </div>
           )}
 
@@ -304,11 +306,11 @@ export default function Dashboard() {
                     text += `PRAYER REQUEST\n`;
                     text += `${dateStr}\n`;
                     text += `================================\n\n`;
-                    requestsForDate.forEach((r, i) => {
+                    requestsForDate.filter(r => r.status === 'approved').forEach((r, i) => {
                       text += `${i + 1}. ${r.full_name} — ${r.prayer_message}\n`;
                     });
                     text += `\n================================\n`;
-                    text += `Total Prayers: ${requestsForDate.length}\n`;
+                    text += `Total Prayers: ${requestsForDate.filter(r => r.status === 'approved').length}\n`;
                     text += `================================`;
                     return text;
                   })()}
@@ -323,11 +325,11 @@ export default function Dashboard() {
                     text += `PRAYER REQUEST\n`;
                     text += `${dateStr}\n`;
                     text += `================================\n\n`;
-                    requestsForDate.forEach((r, i) => {
+                    requestsForDate.filter(r => r.status === 'approved').forEach((r, i) => {
                       text += `${i + 1}. ${r.full_name} — ${r.prayer_message}\n`;
                     });
                     text += `\n================================\n`;
-                    text += `Total Prayers: ${requestsForDate.length}\n`;
+                    text += `Total Prayers: ${requestsForDate.filter(r => r.status === 'approved').length}\n`;
                     text += `================================`;
                     navigator.clipboard.writeText(text);
                     alert('Copied to clipboard!');
@@ -338,7 +340,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-          {selectedDate && (requestsForDate.length === 0
+           {selectedDate && church !== 'public' && ((requestsForDate.length === 0
             ? <p style={{color:'#6B7280'}}>No entries for this date.</p>
             : (() => {
                 // Group by date
