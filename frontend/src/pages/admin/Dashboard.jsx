@@ -51,7 +51,7 @@ export default function Dashboard() {
   };
   const loadComments = async () => {
     const data = await adminGetComments();
-    setPendingComments(data.comments);
+    setPendingComments(data.comments.filter(c => c.church === church));
   };
 
   const loadPendingRequests = async () => {
@@ -423,12 +423,14 @@ export default function Dashboard() {
               })()
           )}
 
-          {/* Pending Prayer Requests */}
+          {/* Pending Prayer Requests - only for Public Prayers */}
+          {church === 'public' && (
           <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>
             Pending Prayer Requests
             {pendingRequests.length > 0 && <span style={{background:'#DC2626', color:'white', borderRadius:'12px', padding:'2px 8px', fontSize:'12px', marginLeft:'8px'}}>{pendingRequests.length}</span>}
           </h3>
-          {pendingRequests.length === 0
+          )}
+          {church === 'public' && (pendingRequests.length === 0
             ? <p style={{color:'#6B7280'}}>No pending prayer requests.</p>
             : pendingRequests.map(r => (
               <div key={r.id} style={styles.commentCard}>
@@ -461,7 +463,7 @@ export default function Dashboard() {
                 )}
               </div>
             ))
-          }
+          )}
 
           {/* Comments */}
           <h3 style={{color:'#1B3A6B', marginTop:'32px'}}>
