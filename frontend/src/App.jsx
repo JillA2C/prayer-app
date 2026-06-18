@@ -12,7 +12,7 @@ function RequireAuth({ children }) {
 }
 
 export default function App() {
-  const entered = localStorage.getItem('entered') === 'true';
+  const entered = sessionStorage.getItem('entered') === 'true';
   return (
     <BrowserRouter>
       <Routes>

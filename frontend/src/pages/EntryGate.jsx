@@ -72,7 +72,7 @@ export default function EntryGate() {
   const navigate = useNavigate();
   const [game] = useState(() => BIBLE_GAMES[Math.floor(Math.random() * BIBLE_GAMES.length)]);
   const [hintIndex, setHintIndex] = useState(0);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(localStorage.getItem('visitorName') || '');
   const [guess, setGuess] = useState('');
   const [error, setError] = useState('');
   const [solved, setSolved] = useState(false);
@@ -95,7 +95,7 @@ export default function EntryGate() {
       return;
     }
     localStorage.setItem('visitorName', name.trim());
-    localStorage.setItem('entered', 'true');
+    sessionStorage.setItem('entered', 'true');
     window.location.href = '/';
   };
 
