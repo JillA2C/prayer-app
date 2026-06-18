@@ -137,13 +137,14 @@ router.get('/comments', auth, async (req, res) => {
   res.json({ comments: rows });
 });
 
-// DELETE /api/admin/comments/:id (with optional reason)
+// DELETE /api/admin/comments/:id (soft delete with optional reason)
 router.delete('/comments/:id', auth, async (req, res) => {
   const { reason = '' } = req.body;
-  const { rowCount } = await pool.query(
-    `DELETE FROM comments WHERE id=$1`, [req.params.id]
+  const { rows } = await pool.query(
+    `UPDATE comments SET status='deleted', deleted_reason=$1 WHERE id=$2 RETURNING *`,
+    [reason, req.params.id]
   );
-  if (!rowCount) return res.status(404).json({ error: 'Not found' });
-  res.json({ message: 'Comment deleted.', reason });
+  if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  res.json({ message: 'Comment deleted.', comment: rows[0] });
 });
 module.exports = router;

@@ -161,7 +161,30 @@ export default function Home() {
 
       {loading ? <p>Loading...</p> :
         displayed.length === 0 ? <p>No prayer requests found.</p> :
-        displayed.map(r => <PrayerCard key={r.id} request={r} />)
+        viewMode === 'name' ? (
+          [...displayed]
+            .sort((a,b) => a.display_name.localeCompare(b.display_name))
+            .map(r => <PrayerCard key={r.id} request={r} />)
+        ) : (
+          (() => {
+            const groups = {};
+            displayed.forEach(r => {
+              const dateKey = new Date(r.date_added).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+              if (!groups[dateKey]) groups[dateKey] = [];
+              groups[dateKey].push(r);
+            });
+            return Object.entries(groups)
+              .sort((a,b) => new Date(b[0]) - new Date(a[0]))
+              .map(([date, entries]) => (
+                <div key={date} style={{marginBottom:'24px'}}>
+                  <div style={{background:'#1B3A6B', color:'white', padding:'8px 14px', borderRadius:'8px', fontWeight:'600', fontSize:'14px', marginBottom:'10px'}}>
+                    📅 {date}
+                  </div>
+                  {entries.map(r => <PrayerCard key={r.id} request={r} />)}
+                </div>
+              ));
+          })()
+        )
       }
 
       <footer style={styles.footer}>© 2026 Prayer Wall — All Rights Reserved</footer>

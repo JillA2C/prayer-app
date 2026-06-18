@@ -76,8 +76,10 @@ router.post('/prayer-requests/:id/pray', prayLimiter, async (req, res) => {
 // GET /api/prayer-requests/:id/comments
 router.get('/prayer-requests/:id/comments', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT visitor_name, comment_text, submitted_at, approved_at
-     FROM comments WHERE request_id = $1 AND status = 'approved'
+    `SELECT visitor_name, 
+            CASE WHEN status = 'deleted' THEN '***' ELSE comment_text END AS comment_text,
+            submitted_at, approved_at, status, deleted_reason
+     FROM comments WHERE request_id = $1 AND status IN ('approved', 'deleted')
      ORDER BY submitted_at DESC`, [req.params.id]
   );
   res.json({ comments: rows });
@@ -139,7 +141,9 @@ router.get('/prayer-requests/my-status', async (req, res) => {
   );
 
   const { rows: comments } = await pool.query(
-    `SELECT c.id, c.visitor_name, c.comment_text, c.status, c.reject_reason,
+    `SELECT c.id, c.visitor_name, 
+            CASE WHEN c.status = 'deleted' THEN '***' ELSE c.comment_text END AS comment_text,
+            c.status, c.reject_reason, c.deleted_reason,
             c.submitted_at, pr.prayer_title, pr.church
      FROM comments c
      JOIN prayer_requests pr ON c.request_id = pr.id

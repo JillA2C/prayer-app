@@ -38,9 +38,17 @@ export default function CommentPanel({ requestId }) {
             <div key={i} style={{marginBottom:'8px', paddingBottom:'8px', borderBottom:'1px solid #ddd'}}>
               <strong>{c.visitor_name}</strong>
               <span style={{color:'#999', fontSize:'12px', marginLeft:'8px'}}>
-                {new Date(c.approved_at).toLocaleDateString()}
+                {new Date(c.submitted_at || c.approved_at).toLocaleDateString()}
               </span>
-              <p style={{margin:'4px 0 0'}}>{c.comment_text}</p>
+              {c.status === 'deleted' ? (
+                <div style={{marginTop:'4px'}}>
+                  <p style={{margin:'0', color:'#9CA3AF', fontStyle:'italic'}}>***</p>
+                  <p style={{margin:'2px 0 0', fontSize:'12px', color:'#DC2626'}}>🗑️ Removed by admin</p>
+                  {c.deleted_reason && <p style={{margin:'2px 0 0', fontSize:'11px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}
+                </div>
+              ) : (
+                <p style={{margin:'4px 0 0'}}>{c.comment_text}</p>
+              )}
             </div>
           ))
       }

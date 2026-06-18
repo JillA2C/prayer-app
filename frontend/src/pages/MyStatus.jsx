@@ -91,25 +91,27 @@ export default function MyStatus() {
                     {churchComments.map((c, i) => (
                       <div key={i} style={{
                         ...styles.statusCard,
-                        background: c.status === 'approved' ? '#F0FDF4' : c.deleted_reason ? '#FEF2F2' : '#FFFBEB',
-                        border: c.status === 'approved' ? '1px solid #BBF7D0' : c.deleted_reason ? '1px solid #FECACA' : '1px solid #FDE68A'
+                       background: c.status === 'approved' ? '#F0FDF4' : c.status === 'pending' ? '#FFFBEB' : c.status === 'deleted' ? '#F9FAFB' : '#FEF2F2',
+                  border: c.status === 'approved' ? '1px solid #BBF7D0' : c.status === 'pending' ? '1px solid #FDE68A' : c.status === 'deleted' ? '1px solid #E2E8F0' : '1px solid #FECACA'
                       }}>
                         <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
                           On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}
                         </div>
-                        <p style={{margin:'0 0 6px', fontSize:'14px'}}>{c.comment_text}</p>
-                        {c.status === 'approved' && !c.deleted_reason && (
-                          <p style={styles.statusApproved}>✅ Visible — your encouragement is showing</p>
-                        )}
-                        {c.status === 'pending' && (
-                          <p style={styles.statusPending}>⏳ Under Review</p>
-                        )}
-                        {c.deleted_reason && (
-                          <div>
-                            <p style={styles.statusRejected}>🗑️ Removed by admin</p>
-                            <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>
-                          </div>
-                        )}
+                        <p style={{margin:'0 0 6px', fontSize:'14px', color: c.status === 'deleted' ? '#9CA3AF' : '#555', fontStyle: c.status === 'deleted' ? 'italic' : 'normal'}}>
+                    {c.comment_text}
+                  </p>
+                  {c.status === 'approved' && (
+                    <p style={styles.statusApproved}>✅ Visible — your encouragement is showing</p>
+                  )}
+                  {c.status === 'pending' && (
+                    <p style={styles.statusPending}>⏳ Under Review</p>
+                  )}
+                  {c.status === 'deleted' && (
+                    <div>
+                      <p style={styles.statusRejected}>🗑️ Removed by admin</p>
+                      {c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}
+                    </div>
+                  )}
                       </div>
                     ))}
                   </div>
