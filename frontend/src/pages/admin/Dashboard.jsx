@@ -9,8 +9,8 @@ import {
 } from '../../api/prayerApi';
 
 const CHURCHES = [
-  { id: 'st_michael', name: 'AMC Paudpod', tagline: 'Growing in Faith, United in Prayer', icon: '⛪' },
-  { id: 'holy_trinity', name: 'AMC Carael', tagline: 'One Faith, One Family', icon: '✝️' },
+  { id: 'st_michael', name: 'AMC Paudpod', tagline: 'Make Disciple of All Nation', icon: '⛪' },
+  { id: 'holy_trinity', name: 'AMC Carael', tagline: 'Make Disciple of All Nation', icon: '✝️' },
   { id: 'public', name: 'Public Prayers', tagline: 'Open prayer wall for everyone', icon: '🌍' }
 ];
 
