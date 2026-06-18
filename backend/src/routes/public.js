@@ -4,23 +4,21 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../config/db');
 const router = express.Router();
 
-// GET /api/prayer-requests (paginated public list)
+// GET /api/prayer-requests (public list - no limit)
 router.get('/prayer-requests', async (req, res) => {
-  const page   = Math.max(1, parseInt(req.query.page) || 1);
-  const offset = (page - 1) * 20;
   const { church } = req.query;
   try {
     let where = "WHERE status = 'approved'";
     const params = [];
     if (church) { params.push(church); where += ` AND church = $${params.length}`; }
-    params.push(offset);
 
     const { rows } = await pool.query(
       `SELECT id, prayer_title, pray_count, date_added, church,
+              full_name,
               CASE WHEN show_name THEN full_name ELSE 'Anonymous' END AS display_name,
               LEFT(prayer_message, 200) AS preview
        FROM prayer_requests ${where}
-       ORDER BY date_added DESC LIMIT 20 OFFSET $${params.length}`, params
+       ORDER BY date_added DESC`, params
     );
 
     const totalParams = church ? [church] : [];
@@ -28,7 +26,7 @@ router.get('/prayer-requests', async (req, res) => {
     const total = await pool.query(
       `SELECT COUNT(*) FROM prayer_requests ${totalWhere}`, totalParams
     );
-    res.json({ requests: rows, total: parseInt(total.rows[0].count), page });
+    res.json({ requests: rows, total: parseInt(total.rows[0].count), page: 1 });
   } catch (err) { res.status(500).json({ error: 'Fetch failed' }); }
 });
 
@@ -43,9 +41,10 @@ router.get('/prayer-requests/search', async (req, res) => {
   if (church) { params.push(church);      where += ` AND church = $${params.length}`; }
   const { rows } = await pool.query(
     `SELECT id, prayer_title, pray_count, date_added, church,
+            full_name,
             CASE WHEN show_name THEN full_name ELSE 'Anonymous' END AS display_name,
             LEFT(prayer_message,200) AS preview
-     FROM prayer_requests ${where} ORDER BY date_added DESC LIMIT 50`, params
+     FROM prayer_requests ${where} ORDER BY date_added DESC`, params
   );
   res.json({ requests: rows });
 });
@@ -77,9 +76,9 @@ router.post('/prayer-requests/:id/pray', prayLimiter, async (req, res) => {
 // GET /api/prayer-requests/:id/comments
 router.get('/prayer-requests/:id/comments', async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT visitor_name, comment_text, approved_at
+    `SELECT visitor_name, comment_text, submitted_at, approved_at
      FROM comments WHERE request_id = $1 AND status = 'approved'
-     ORDER BY approved_at DESC`, [req.params.id]
+     ORDER BY submitted_at DESC`, [req.params.id]
   );
   res.json({ comments: rows });
 });
@@ -151,4 +150,5 @@ router.get('/prayer-requests/my-status', async (req, res) => {
 
   res.json({ requests: prayers, comments });
 });
+
 module.exports = router;
