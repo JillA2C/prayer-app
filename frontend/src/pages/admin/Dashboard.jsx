@@ -420,11 +420,22 @@ export default function Dashboard() {
                   📅 {date} — {dateComments.length} {dateComments.length === 1 ? 'comment' : 'comments'}
                 </div>
                 {dateComments.map(c => (
-                  <div key={c.id} style={styles.commentCard}>
+                  <div key={c.id} style={{
+                  ...styles.commentCard,
+                  background: c.status === 'deleted' ? '#F9FAFB' : '#fff',
+                  borderLeft: c.status === 'deleted' ? '4px solid #DC2626' : '1px solid #E2E8F0',
+                  opacity: c.status === 'deleted' ? 0.7 : 1
+                }}>
                     <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
                       On: <strong>{c.prayer_title}</strong> — by {c.visitor_name}
                     </div>
-                    <div style={{marginBottom:'8px'}}>{c.comment_text}</div>
+                    <div style={{
+                  marginBottom:'8px',
+                  textDecoration: c.status === 'deleted' ? 'line-through' : 'none',
+                  color: c.status === 'deleted' ? '#9CA3AF' : '#333'
+                }}>
+                  {c.status === 'deleted' ? '***' : c.comment_text}
+                </div>
                     {rejectingCommentId === c.id ? (
                       <div>
                         <input placeholder="Reason for deletion (optional)..." value={rejectCommentReason}
@@ -435,6 +446,11 @@ export default function Dashboard() {
                         }} style={styles.rejectBtn}>Confirm Delete</button>
                         <button onClick={() => { setRejectingCommentId(null); setRejectCommentReason(''); }}
                           style={{...styles.cancelBtn, marginLeft:'8px'}}>Cancel</button>
+                      </div>
+                    ) : c.status === 'deleted' ? (
+                      <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                        <span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>🗑️ Deleted</span>
+                        {c.deleted_reason && <span style={{fontSize:'12px', color:'#6B7280'}}>— {c.deleted_reason}</span>}
                       </div>
                     ) : (
                       <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
