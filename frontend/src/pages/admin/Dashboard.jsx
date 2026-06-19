@@ -142,10 +142,10 @@ export default function Dashboard() {
   if (!church) {
     return (
       <div style={styles.page}>
-        <header style={styles.header}>
-          <h1 style={styles.title}>Admin Dashboard</h1>
-          <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
-        </header>
+        <nav style={styles.navBar}>
+        <span style={styles.navLogo}>🙏 Prayer Wall <span style={{fontWeight:'normal', fontSize:'13px', color:'#6B7280'}}>Admin</span></span>
+        <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
+      </nav>
         <p style={styles.subtitle}>Choose a church to manage</p>
         <div style={styles.churchGrid}>
           {CHURCHES.map(c => (
@@ -167,10 +167,10 @@ export default function Dashboard() {
 
   return (
     <div style={styles.page}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Admin Dashboard</h1>
+      <nav style={styles.navBar}>
+        <span style={styles.navLogo}>🙏 Prayer Wall <span style={{fontWeight:'normal', fontSize:'13px', color:'#6B7280'}}>Admin</span></span>
         <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
-      </header>
+      </nav>
 
       <button onClick={handleChangeChurch} style={styles.changeChurch}>
         {churchInfo.icon} {churchInfo.name} (change)
@@ -573,7 +573,13 @@ export default function Dashboard() {
 }
 
 const styles = {
-  page: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' },
+  page: { maxWidth: '800px', margin: '0 auto', padding: '0 20px 20px', fontFamily: 'sans-serif' },
+  navBar: {
+    display:'flex', justifyContent:'space-between', alignItems:'center',
+    padding:'16px 0', borderBottom:'1px solid #E2E8F0', marginBottom:'16px'
+  },
+  navLogo: { fontWeight:'700', color:'#1B3A6B', fontSize:'18px' },
+  header: { display:'flex', justifyContent:'space-between', alignItems:'center' },
   header: { display:'flex', justifyContent:'space-between', alignItems:'center' },
   title: { color: '#1B3A6B', margin: 0 },
   subtitle: { color: '#6B7280', marginTop: '8px' },

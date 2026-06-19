@@ -36,6 +36,10 @@ export default function Home() {
   if (!church) {
     return (
       <div style={styles.page}>
+        <nav style={styles.navBar}>
+          <span style={styles.navLogo}>🙏 Prayer Wall</span>
+          <button onClick={() => navigate('/my-status')} style={styles.navLink}>🔍 My Status</button>
+        </nav>
         <header style={styles.header}>
           <h1 style={styles.title}>Prayer Wall</h1>
           <p style={styles.subtitle}>We are stronger together in prayer.</p>
@@ -53,9 +57,7 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <button onClick={() => navigate('/my-status')} style={styles.statusBtn}>
-          🔍 Check My Status
-        </button>
+        <footer style={styles.footer}>© 2026 Prayer Wall — All Rights Reserved</footer>
         <footer style={styles.footer}>© 2026 Prayer Wall — All Rights Reserved</footer>
       </div>
     );
@@ -77,6 +79,10 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
+      <nav style={styles.navBar}>
+        <span style={styles.navLogo}>🙏 Prayer Wall</span>
+        <button onClick={() => navigate('/my-status')} style={styles.navLink}>🔍 My Status</button>
+      </nav>
       <header style={styles.header}>
         <h1 style={styles.title}>Prayer Wall</h1>
         <button onClick={() => setChurch(null)} style={styles.changeChurch}>
@@ -193,7 +199,16 @@ export default function Home() {
 }
 
 const styles = {
-  page: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' },
+  page: { maxWidth: '800px', margin: '0 auto', padding: '0 20px 20px', fontFamily: 'sans-serif' },
+  navBar: {
+    display:'flex', justifyContent:'space-between', alignItems:'center',
+    padding:'16px 0', borderBottom:'1px solid #E2E8F0', marginBottom:'20px'
+  },
+  navLogo: { fontWeight:'700', color:'#1B3A6B', fontSize:'18px' },
+  navLink: {
+    background:'none', border:'1px solid #1B3A6B', borderRadius:'6px',
+    padding:'6px 14px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px', fontWeight:'600'
+  },
   header: { textAlign: 'center', marginBottom: '24px' },
   title: { color: '#1B3A6B', fontFamily: 'Georgia, serif', margin: '0 0 8px' },
   subtitle: { color: '#1B3A6B', fontWeight: '600', margin: '4px 0' },
