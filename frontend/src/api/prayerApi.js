@@ -34,6 +34,21 @@ export const submitPrayerRequest = (data) =>
 export const adminLogin = (creds) =>
   axios.post(`${API}/admin/login`, creds).then(r=>r.data);
 
+export const adminGetGames = () =>
+  axios.get(`${API}/admin/games`, {headers: authHeader()}).then(r=>r.data);
+
+export const adminAddGame = (data) =>
+  axios.post(`${API}/admin/games`, data, {headers: authHeader()}).then(r=>r.data);
+
+export const adminEditGame = (id, data) =>
+  axios.put(`${API}/admin/games/${id}`, data, {headers: authHeader()}).then(r=>r.data);
+
+export const adminDeleteGame = (id) =>
+  axios.delete(`${API}/admin/games/${id}`, {headers: authHeader()}).then(r=>r.data);
+
+export const getRandomGame = () =>
+  axios.get(`${API}/games/random`).then(r=>r.data);
+
 export const adminGetPendingRequests = () =>
   axios.get(`${API}/admin/requests/pending`, {headers: authHeader()}).then(r=>r.data);
 

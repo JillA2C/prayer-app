@@ -155,4 +155,13 @@ router.get('/prayer-requests/my-status', async (req, res) => {
   res.json({ requests: prayers, comments });
 });
 
+// GET /api/games/random
+router.get('/games/random', async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, answer, hint1, hint2, hint3 FROM bible_games WHERE active = true ORDER BY RANDOM() LIMIT 1`
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'No games available' });
+  res.json(rows[0]);
+});
+
 module.exports = router;

@@ -147,4 +147,47 @@ router.delete('/comments/:id', auth, async (req, res) => {
   if (!rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json({ message: 'Comment deleted.', comment: rows[0] });
 });
+// GET /api/admin/games
+router.get('/games', auth, async (req, res) => {
+  const { rows } = await pool.query(`SELECT * FROM bible_games ORDER BY id DESC`);
+  res.json({ games: rows });
+});
+
+// POST /api/admin/games
+router.post('/games', auth,
+  body('answer').trim().notEmpty(),
+  body('hint1').trim().notEmpty(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const { answer, hint1, hint2 = '', hint3 = '', difficulty = 'easy' } = req.body;
+    const { rows } = await pool.query(
+      `INSERT INTO bible_games (answer, hint1, hint2, hint3, difficulty)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [answer, hint1, hint2, hint3, difficulty]
+    );
+    res.status(201).json({ game: rows[0] });
+  }
+);
+
+// PUT /api/admin/games/:id
+router.put('/games/:id', auth, async (req, res) => {
+  const { answer, hint1, hint2, hint3, difficulty, active } = req.body;
+  const { rows } = await pool.query(
+    `UPDATE bible_games SET answer=$1, hint1=$2, hint2=$3, hint3=$4, difficulty=$5, active=$6
+     WHERE id=$7 RETURNING *`,
+    [answer, hint1, hint2, hint3, difficulty, active, req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  res.json({ game: rows[0] });
+});
+
+// DELETE /api/admin/games/:id
+router.delete('/games/:id', auth, async (req, res) => {
+  const { rowCount } = await pool.query('DELETE FROM bible_games WHERE id=$1', [req.params.id]);
+  if (!rowCount) return res.status(404).json({ error: 'Not found' });
+  res.json({ message: 'Deleted.' });
+});
+
 module.exports = router;

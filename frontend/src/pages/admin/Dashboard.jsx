@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   adminGetRequests, adminAddRequest, adminEditRequest, adminDeleteRequest,
   adminGetComments, adminDeleteComment,
-  adminGetPendingRequests, adminApproveRequest, adminRejectRequest,
-  checkMyStatus
+ adminGetPendingRequests, adminApproveRequest, adminRejectRequest,
+  checkMyStatus, adminGetGames, adminAddGame, adminEditGame, adminDeleteGame
 } from '../../api/prayerApi';
 
 const CHURCHES = [
@@ -16,6 +16,10 @@ const CHURCHES = [
 
 export default function Dashboard() {
   const [church, setChurch] = useState(null);
+  const [showGames, setShowGames] = useState(false);
+  const [games, setGames] = useState([]);
+  const [gameForm, setGameForm] = useState({ answer:'', hint1:'', hint2:'', hint3:'', difficulty:'easy' });
+  const [editingGameId, setEditingGameId] = useState(null);
   const [adminTab, setAdminTab] = useState('manage');
   const [requests, setRequests] = useState([]);
   const [comments, setComments] = useState([]);
@@ -58,6 +62,42 @@ export default function Dashboard() {
   const loadPendingRequests = async () => {
     const data = await adminGetPendingRequests();
     setPendingRequests(data.requests);
+  };
+
+  const loadGames = async () => {
+    const data = await adminGetGames();
+    setGames(data.games);
+  };
+
+  const handleSaveGame = async () => {
+    if (!gameForm.answer.trim() || !gameForm.hint1.trim()) {
+      alert('Answer and Hint 1 are required.');
+      return;
+    }
+    if (editingGameId) {
+      await adminEditGame(editingGameId, { ...gameForm, active: true });
+    } else {
+      await adminAddGame(gameForm);
+    }
+    setGameForm({ answer:'', hint1:'', hint2:'', hint3:'', difficulty:'easy' });
+    setEditingGameId(null);
+    loadGames();
+  };
+
+  const handleEditGame = (g) => {
+    setGameForm({ answer: g.answer, hint1: g.hint1, hint2: g.hint2 || '', hint3: g.hint3 || '', difficulty: g.difficulty });
+    setEditingGameId(g.id);
+  };
+
+  const handleDeleteGame = async (id) => {
+    if (!confirm('Delete this game?')) return;
+    await adminDeleteGame(id);
+    loadGames();
+  };
+
+  const handleToggleGame = async (g) => {
+    await adminEditGame(g.id, { answer: g.answer, hint1: g.hint1, hint2: g.hint2, hint3: g.hint3, difficulty: g.difficulty, active: !g.active });
+    loadGames();
   };
 
   useEffect(() => {
@@ -143,9 +183,9 @@ export default function Dashboard() {
     return (
       <div style={styles.page}>
         <nav style={styles.navBar}>
-        <span style={styles.navLogo}>🙏 Prayer Wall <span style={{fontWeight:'normal', fontSize:'13px', color:'#6B7280'}}>Admin</span></span>
-        <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
-      </nav>
+          <span style={styles.navLogo}>🙏 Prayer Wall <span style={{fontWeight:'normal', fontSize:'13px', color:'#6B7280'}}>Admin</span></span>
+          <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
+        </nav>
         <p style={styles.subtitle}>Choose a church to manage</p>
         <div style={styles.churchGrid}>
           {CHURCHES.map(c => (
@@ -159,6 +199,67 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+
+        <button onClick={() => { setShowGames(true); loadGames(); }} style={styles.statusBtn}>
+          🎮 Manage Entry Gate Games
+        </button>
+
+        {showGames && (
+          <div style={styles.overlay}>
+            <div style={{...styles.popup, maxWidth:'600px', maxHeight:'80vh', overflowY:'auto'}}>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
+                <h3 style={{margin:0, color:'#1B3A6B'}}>🎮 Bible Guessing Games</h3>
+                <button onClick={() => { setShowGames(false); setEditingGameId(null); setGameForm({ answer:'', hint1:'', hint2:'', hint3:'', difficulty:'easy' }); }} style={styles.closeBtn}>✕ Close</button>
+              </div>
+
+              <div style={styles.formBox}>
+                <h4 style={{marginTop:0, color:'#1B3A6B'}}>{editingGameId ? 'Edit Game' : '+ Add New Game'}</h4>
+                <label style={styles.label}>Answer (Bible Character)</label>
+                <input placeholder="e.g. Moses" value={gameForm.answer}
+                  onChange={e => setGameForm({...gameForm, answer: e.target.value})} style={styles.input} />
+                <label style={styles.label}>Hint 1 (required)</label>
+                <input placeholder="First hint..." value={gameForm.hint1}
+                  onChange={e => setGameForm({...gameForm, hint1: e.target.value})} style={styles.input} />
+                <label style={styles.label}>Hint 2 (optional)</label>
+                <input placeholder="Second hint..." value={gameForm.hint2}
+                  onChange={e => setGameForm({...gameForm, hint2: e.target.value})} style={styles.input} />
+                <label style={styles.label}>Hint 3 (optional)</label>
+                <input placeholder="Third hint..." value={gameForm.hint3}
+                  onChange={e => setGameForm({...gameForm, hint3: e.target.value})} style={styles.input} />
+                <label style={styles.label}>Difficulty</label>
+                <select value={gameForm.difficulty} onChange={e => setGameForm({...gameForm, difficulty: e.target.value})} style={styles.input}>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+                <div style={{display:'flex', gap:'8px'}}>
+                  <button onClick={handleSaveGame} style={styles.saveBtn}>{editingGameId ? 'Update' : 'Add'} Game</button>
+                  {editingGameId && (
+                    <button onClick={() => { setEditingGameId(null); setGameForm({ answer:'', hint1:'', hint2:'', hint3:'', difficulty:'easy' }); }} style={styles.cancelBtn}>Cancel</button>
+                  )}
+                </div>
+              </div>
+
+              <h4 style={{color:'#1B3A6B'}}>Active Games ({games.filter(g => g.active).length})</h4>
+              {games.length === 0 ? <p style={{color:'#6B7280'}}>No games yet.</p> :
+                games.map(g => (
+                  <div key={g.id} style={{...styles.commentCard, opacity: g.active ? 1 : 0.5}}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                      <strong>{g.answer}</strong>
+                      <span style={{fontSize:'11px', background:'#E8F0FE', color:'#1B3A6B', padding:'2px 8px', borderRadius:'10px'}}>{g.difficulty}</span>
+                    </div>
+                    <p style={{fontSize:'13px', color:'#6B7280', margin:'4px 0'}}>{g.hint1}</p>
+                    <div style={{display:'flex', gap:'8px', marginTop:'8px'}}>
+                      <button onClick={() => handleEditGame(g)} style={{fontSize:'12px'}}>Edit</button>
+                      <button onClick={() => handleToggleGame(g)} style={{fontSize:'12px'}}>{g.active ? 'Deactivate' : 'Activate'}</button>
+                      <button onClick={() => handleDeleteGame(g.id)} style={{...styles.rejectBtn, fontSize:'12px'}}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -604,6 +705,11 @@ const styles = {
   backBtn: { background:'none', border:'1px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px' },
   datePill: { display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'12px 16px', marginBottom:'8px', background:'#fff', border:'1px solid #E2E8F0', borderRadius:'8px', cursor:'pointer', fontSize:'14px', color:'#1B3A6B', fontWeight:'600' },
   datePillCount: { background:'#E8F0FE', color:'#1B3A6B', borderRadius:'12px', padding:'2px 10px', fontSize:'12px', fontWeight:'normal' },
+  statusBtn: {
+    display: 'block', width: '100%', maxWidth: '500px', margin: '20px auto 0',
+    background: 'none', border: '1px solid #1B3A6B', borderRadius: '10px',
+    padding: '14px 16px', cursor: 'pointer', fontSize: '15px', color: '#1B3A6B', fontWeight: '600'
+  },
   textLayoutBtn: { background:'#1B3A6B', color:'white', border:'none', padding:'8px 14px', borderRadius:'6px', cursor:'pointer', fontSize:'13px' },
   overlay: { position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
   popup: { background:'#fff', borderRadius:'12px', padding:'20px', width:'90%', maxWidth:'500px', boxShadow:'0 8px 24px rgba(0,0,0,0.2)' },
