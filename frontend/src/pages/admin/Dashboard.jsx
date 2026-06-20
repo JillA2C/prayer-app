@@ -222,8 +222,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Add/Edit form - not for public */}
-          {selectedDate && church !== 'public' && (
+          {/* Add/Edit form */}
+          {selectedDate && (editingId || church !== 'public') && (
             <div style={styles.formBox}>
               <h3 style={{marginTop:0, color:'#1B3A6B'}}>
                 {editingId ? 'Edit Prayer Request' : '+ Add Prayer Request'}
@@ -254,9 +254,7 @@ export default function Dashboard() {
               <h3 style={{color:'#1B3A6B', margin:0}}>
                 Prayer Requests — {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
               </h3>
-              {church !== 'public' && (
-                <button onClick={() => setShowTextLayout(true)} style={styles.textLayoutBtn}>📄 Text Layout</button>
-              )}
+              <button onClick={() => setShowTextLayout(true)} style={styles.textLayoutBtn}>📄 Text Layout</button>
             </div>
           )}
 

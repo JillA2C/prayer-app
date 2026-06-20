@@ -72,7 +72,10 @@ export default function EntryGate() {
   const navigate = useNavigate();
   const [game] = useState(() => BIBLE_GAMES[Math.floor(Math.random() * BIBLE_GAMES.length)]);
   const [hintIndex, setHintIndex] = useState(0);
-  const [name, setName] = useState(localStorage.getItem('visitorName') || '');
+  const savedName = localStorage.getItem('visitorName') || '';
+  const isReturning = !!savedName;
+  const [name, setName] = useState(savedName);
+  const [unlocked, setUnlocked] = useState(false);
   const [guess, setGuess] = useState('');
   const [error, setError] = useState('');
   const [solved, setSolved] = useState(false);
@@ -117,8 +120,14 @@ export default function EntryGate() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type your name here..."
-              style={styles.input}
+              readOnly={isReturning && !unlocked}
+              style={{...styles.input, background: (isReturning && !unlocked) ? '#f5f5f5' : '#fff', color: (isReturning && !unlocked) ? '#666' : '#000'}}
             />
+            {isReturning && !unlocked && (
+              <button onClick={() => setUnlocked(true)} style={styles.changeNameLink}>
+                Not you? Change name
+              </button>
+            )}
           </div>
         </div>
 
@@ -243,6 +252,10 @@ const styles = {
     cursor: 'pointer',
     fontSize: '16px',
     fontWeight: '600'
+  },
+  changeNameLink: {
+    background: 'none', border: 'none', color: '#1e3a5f', fontSize: '12px',
+    textDecoration: 'underline', cursor: 'pointer', padding: '4px 0', marginBottom: '8px'
   },
   enterBtnDisabled: {
     background: '#aaa',
