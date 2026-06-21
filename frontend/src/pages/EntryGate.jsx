@@ -1,76 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const BIBLE_GAMES = [
-  {
-    answer: 'Moses',
-    hints: [
-      'I led the Israelites out of Egypt.',
-      'I parted the Red Sea.',
-      'I received the Ten Commandments on Mount Sinai.'
-    ]
-  },
-  {
-    answer: 'David',
-    hints: [
-      'I was a shepherd before I became king.',
-      'I defeated a giant named Goliath.',
-      'I wrote many of the Psalms.'
-    ]
-  },
-  {
-    answer: 'Noah',
-    hints: [
-      'God told me to build something huge.',
-      'My family and many animals survived a great flood with me.',
-      'A rainbow was a sign of God\'s promise after my story.'
-    ]
-  },
-  {
-    answer: 'Esther',
-    hints: [
-      'I became queen of Persia.',
-      'I risked my life to save my people.',
-      'A whole book of the Bible is named after me.'
-    ]
-  },
-  {
-    answer: 'Daniel',
-    hints: [
-      'I was thrown into a den of lions.',
-      'I interpreted dreams for a king.',
-      'I remained faithful even when it was illegal to pray.'
-    ]
-  },
-  {
-    answer: 'Jonah',
-    hints: [
-      'I tried to run away from God\'s command.',
-      'I was swallowed by a great fish.',
-      'God sent me to preach to Nineveh.'
-    ]
-  },
-  {
-    answer: 'Mary',
-    hints: [
-      'I was visited by an angel named Gabriel.',
-      'I gave birth in Bethlehem.',
-      'My son is Jesus.'
-    ]
-  },
-  {
-    answer: 'Peter',
-    hints: [
-      'I was a fisherman before becoming a disciple.',
-      'I once denied knowing Jesus three times.',
-      'Jesus called me a "rock."'
-    ]
-  }
-];
+import { getRandomGame } from '../api/prayerApi';
 
 export default function EntryGate() {
   const navigate = useNavigate();
-  const [game] = useState(() => BIBLE_GAMES[Math.floor(Math.random() * BIBLE_GAMES.length)]);
+  const [game, setGame] = useState(null);
+  const [loadingGame, setLoadingGame] = useState(true);
+
+  useEffect(() => {
+    getRandomGame()
+      .then(data => {
+        setGame({
+          answer: data.answer,
+          hints: [data.hint1, data.hint2, data.hint3].filter(Boolean)
+        });
+        setLoadingGame(false);
+      })
+      .catch(() => setLoadingGame(false));
+  }, []);
   const [hintIndex, setHintIndex] = useState(0);
   const savedName = localStorage.getItem('visitorName') || '';
   const isReturning = !!savedName;
@@ -135,6 +82,7 @@ export default function EntryGate() {
           <span style={styles.stepNumber}>2</span>
           <div style={styles.stepContent}>
             <label style={styles.label}>Answer this to continue:</label>
+            {loadingGame ? <p style={{fontSize:'13px', color:'#666'}}>Loading game...</p> : !game ? <p style={{fontSize:'13px', color:'#DC2626'}}>Could not load game. Refresh to try again.</p> : (
             <div style={styles.gameBox}>
               <p style={styles.gameTitle}>Guess the Bible Character</p>
               {game.hints.slice(0, hintIndex + 1).map((hint, i) => (
@@ -160,6 +108,7 @@ export default function EntryGate() {
                 <p style={styles.correct}>✅ Correct! You may now enter.</p>
               )}
             </div>
+            )}
           </div>
         </div>
 
