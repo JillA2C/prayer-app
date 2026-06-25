@@ -66,6 +66,7 @@ export default function Dashboard() {
 
   const loadGames = async () => {
     const data = await adminGetGames();
+    console.log('Games loaded:', data);
     setGames(data.games);
   };
 
