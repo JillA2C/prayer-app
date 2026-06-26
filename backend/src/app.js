@@ -23,4 +23,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Server error' });
 });
 
+// Run cleanup daily
+setInterval(async () => {
+  try {
+    await pool.query(`DELETE FROM comments WHERE status='deleted' AND submitted_at < NOW() - INTERVAL '30 days'`);
+    await pool.query(`DELETE FROM prayer_requests WHERE status='hidden' AND date_added < NOW() - INTERVAL '30 days'`);
+    console.log('Auto-cleanup ran successfully');
+  } catch (err) { console.error('Cleanup error:', err); }
+}, 24 * 60 * 60 * 1000); // runs every 24 hours
+
 module.exports = app;

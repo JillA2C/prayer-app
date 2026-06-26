@@ -191,4 +191,11 @@ router.delete('/games/:id', auth, async (req, res) => {
   res.json({ message: 'Deleted.' });
 });
 
+// Auto-cleanup: delete rejected/deleted records older than 30 days
+router.delete('/cleanup', auth, async (req, res) => {
+  await pool.query(`DELETE FROM comments WHERE status='deleted' AND submitted_at < NOW() - INTERVAL '30 days'`);
+  await pool.query(`DELETE FROM prayer_requests WHERE status='hidden' AND date_added < NOW() - INTERVAL '30 days'`);
+  res.json({ message: 'Cleanup done.' });
+});
+
 module.exports = router;

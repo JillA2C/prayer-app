@@ -107,11 +107,11 @@ export default function MyStatus() {
                     <p style={styles.statusPending}>⏳ Under Review</p>
                   )}
                   {c.status === 'deleted' && (
-                    <div>
-                      <p style={styles.statusRejected}>🗑️ Removed by admin</p>
-                      {c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}
-                    </div>
-                  )}
+                          <div>
+                            <p style={styles.statusRejected}>🗑️ Deleted — will be permanently removed after 30 days</p>
+                            {c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -141,11 +141,11 @@ export default function MyStatus() {
                     {r.status === 'approved' && <p style={styles.statusApproved}>✅ Approved — visible on Prayer Wall</p>}
                     {r.status === 'pending' && <p style={styles.statusPending}>⏳ Pending — waiting for admin review</p>}
                     {r.status === 'hidden' && (
-                      <div>
-                        <p style={styles.statusRejected}>❌ Not approved</p>
-                        {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
-                      </div>
-                    )}
+                    <div>
+                      <p style={styles.statusRejected}>❌ Not approved — will be permanently removed after 30 days</p>
+                      {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
+                    </div>
+                  )}
                   </div>
                 ))
               )}
