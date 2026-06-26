@@ -135,7 +135,7 @@ router.get('/prayer-requests/my-status', async (req, res) => {
     `SELECT id, full_name, prayer_message, status, reject_reason, date_added
      FROM prayer_requests 
      WHERE LOWER(full_name) LIKE LOWER($1)
-     AND prayer_title = 'Public Prayer Request'
+     AND church = 'public'
      ORDER BY date_added DESC`,
     [`%${name}%`]
   );
