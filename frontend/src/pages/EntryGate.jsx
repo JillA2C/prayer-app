@@ -6,18 +6,6 @@ export default function EntryGate() {
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loadingGame, setLoadingGame] = useState(true);
-
-  useEffect(() => {
-    getRandomGame()
-      .then(data => {
-        setGame({
-          answer: data.answer,
-          hints: [data.hint1, data.hint2, data.hint3].filter(Boolean)
-        });
-        setLoadingGame(false);
-      })
-      .catch(() => setLoadingGame(false));
-  }, []);
   const [hintIndex, setHintIndex] = useState(0);
   const savedName = localStorage.getItem('visitorName') || '';
   const isReturning = !!savedName;
@@ -27,194 +15,160 @@ export default function EntryGate() {
   const [error, setError] = useState('');
   const [solved, setSolved] = useState(false);
 
+  useEffect(() => {
+    getRandomGame()
+      .then(data => {
+        setGame({ answer: data.answer, hints: [data.hint1, data.hint2, data.hint3].filter(Boolean) });
+        setLoadingGame(false);
+      })
+      .catch(() => setLoadingGame(false));
+  }, []);
+
   const handleGuess = () => {
     if (guess.trim().toLowerCase() === game.answer.toLowerCase()) {
-      setSolved(true);
-      setError('');
+      setSolved(true); setError('');
     } else {
-      setError('Not quite — try again!');
-      if (hintIndex < game.hints.length - 1) {
-        setHintIndex(hintIndex + 1);
-      }
+      setError('Not quite 鈥� try again!');
+      if (hintIndex < game.hints.length - 1) setHintIndex(hintIndex + 1);
     }
   };
 
   const handleEnter = () => {
-    if (!name.trim()) {
-      setError('Please enter your name.');
-      return;
-    }
+    if (!name.trim()) { setError('Please enter your name.'); return; }
     localStorage.setItem('visitorName', name.trim());
     sessionStorage.setItem('entered', 'true');
     window.location.href = '/';
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.icon}>🙏</div>
-        <h1 style={styles.title}>Welcome to Prayer Wall</h1>
-        <p style={styles.subtitle}>
-          We're glad you're here. Please complete the steps below to continue.
-        </p>
+    <div style={S.page}>
+      <div style={S.card}>
+        <div style={S.iconWrap}>馃檹</div>
+        <h1 style={S.title}>Welcome to Prayer Wall</h1>
+        <p style={S.subtitle}>We're glad you're here. Please complete the steps below to continue.</p>
 
-        <div style={styles.step}>
-          <span style={styles.stepNumber}>1</span>
-          <div style={styles.stepContent}>
-            <label style={styles.label}>Enter Your Name</label>
+        {/* Step 1 */}
+        <div style={S.step}>
+          <span style={S.stepNum}>1</span>
+          <div style={S.stepBody}>
+            <label style={S.label}>Enter Your Name</label>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               placeholder="Type your name here..."
               readOnly={isReturning && !unlocked}
-              style={{...styles.input, background: (isReturning && !unlocked) ? '#f5f5f5' : '#fff', color: (isReturning && !unlocked) ? '#666' : '#000'}}
+              style={{ ...S.input, ...(isReturning && !unlocked ? S.inputReadonly : {}) }}
             />
             {isReturning && !unlocked && (
-              <button onClick={() => setUnlocked(true)} style={styles.changeNameLink}>
-                Not you? Change name
-              </button>
+              <button onClick={() => setUnlocked(true)} style={S.changeLink}>Not you? Change name</button>
             )}
           </div>
         </div>
 
-        <div style={styles.step}>
-          <span style={styles.stepNumber}>2</span>
-          <div style={styles.stepContent}>
-            <label style={styles.label}>Answer this to continue:</label>
-            {loadingGame ? <p style={{fontSize:'13px', color:'#666'}}>Loading game...</p> : !game ? <p style={{fontSize:'13px', color:'#DC2626'}}>Could not load game. Refresh to try again.</p> : (
-            <div style={styles.gameBox}>
-              <p style={styles.gameTitle}>Guess the Bible Character</p>
-              {game.hints.slice(0, hintIndex + 1).map((hint, i) => (
-                <p key={i} style={styles.hint}>
-                  💡 Hint {i + 1}: {hint}
-                </p>
-              ))}
-              {!solved ? (
-                <>
-                  <input
-                    type="text"
-                    value={guess}
-                    onChange={(e) => setGuess(e.target.value)}
-                    placeholder="Type your answer..."
-                    style={styles.input}
-                    onKeyDown={(e) => e.key === 'Enter' && handleGuess()}
-                  />
-                  <button onClick={handleGuess} style={styles.submitBtn}>
-                    Submit
-                  </button>
-                </>
-              ) : (
-                <p style={styles.correct}>✅ Correct! You may now enter.</p>
-              )}
-            </div>
+        {/* Step 2 */}
+        <div style={S.step}>
+          <span style={S.stepNum}>2</span>
+          <div style={S.stepBody}>
+            <label style={S.label}>Answer this to continue:</label>
+            {loadingGame ? (
+              <p style={S.hint}>Loading game...</p>
+            ) : !game ? (
+              <p style={{ color: '#DC2626', fontSize: '13px' }}>Could not load game. Refresh to try again.</p>
+            ) : (
+              <div style={S.gameBox}>
+                <p style={S.gameTitle}>鉁� Guess the Bible Character</p>
+                {game.hints.slice(0, hintIndex + 1).map((hint, i) => (
+                  <p key={i} style={S.hint}>馃挕 Hint {i + 1}: {hint}</p>
+                ))}
+                {!solved ? (
+                  <>
+                    <input
+                      type="text"
+                      value={guess}
+                      onChange={e => setGuess(e.target.value)}
+                      placeholder="Type your answer..."
+                      style={S.input}
+                      onKeyDown={e => e.key === 'Enter' && handleGuess()}
+                    />
+                    <button onClick={handleGuess} style={S.submitBtn}>Submit</button>
+                  </>
+                ) : (
+                  <p style={S.correct}>鉁� Correct! You may now enter.</p>
+                )}
+              </div>
             )}
           </div>
         </div>
 
-        {error && <p style={styles.error}>{error}</p>}
+        {error && <p style={S.error}>{error}</p>}
 
-        <button
-          onClick={handleEnter}
-          disabled={!solved}
-          style={solved ? styles.enterBtn : styles.enterBtnDisabled}
-        >
-          🔒 Enter
+        <button onClick={handleEnter} disabled={!solved} style={solved ? S.enterBtn : S.enterBtnDisabled}>
+          {solved ? '馃檹 Enter' : '馃敀 Enter'}
         </button>
       </div>
     </div>
   );
 }
 
-const styles = {
+const S = {
   page: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(to bottom, #87ceeb, #f0f4f8)',
+    background: 'linear-gradient(160deg, #1B3A6B 0%, #2A5298 50%, #87CEEB 100%)',
     padding: '20px',
-    fontFamily: 'sans-serif'
   },
   card: {
     background: '#fff',
-    borderRadius: '16px',
-    padding: '32px',
-    maxWidth: '420px',
+    borderRadius: '20px',
+    padding: '36px 28px',
+    maxWidth: '440px',
     width: '100%',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-    textAlign: 'center'
+    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+    textAlign: 'center',
   },
-  icon: { fontSize: '40px', marginBottom: '8px' },
-  title: { fontSize: '24px', fontWeight: 'bold', color: '#1e3a5f', margin: '8px 0' },
-  subtitle: { color: '#666', fontSize: '14px', marginBottom: '24px' },
-  step: { display: 'flex', gap: '12px', marginBottom: '20px', textAlign: 'left' },
-  stepNumber: {
-    background: '#1e3a5f',
-    color: '#fff',
-    borderRadius: '50%',
-    width: '24px',
-    height: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '13px',
-    flexShrink: 0
+  iconWrap: { fontSize: '44px', marginBottom: '10px', lineHeight: 1 },
+  title: { fontSize: '22px', fontWeight: '700', color: '#1B3A6B', margin: '8px 0 6px', fontFamily: 'Georgia, serif' },
+  subtitle: { color: '#6B7280', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5' },
+  step: { display: 'flex', gap: '14px', marginBottom: '22px', textAlign: 'left' },
+  stepNum: {
+    background: '#1B3A6B', color: '#fff', borderRadius: '50%',
+    width: '28px', height: '28px', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0, marginTop: '2px',
   },
-  stepContent: { flex: 1 },
-  label: { display: 'block', fontWeight: '600', marginBottom: '8px', color: '#333', fontSize: '14px' },
+  stepBody: { flex: 1 },
+  label: { display: 'block', fontWeight: '600', marginBottom: '8px', color: '#1B3A6B', fontSize: '14px' },
   input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-    fontSize: '14px',
-    marginBottom: '8px',
-    boxSizing: 'border-box'
+    width: '100%', padding: '11px 14px', border: '1.5px solid #D1D5DB',
+    borderRadius: '8px', fontSize: '14px', marginBottom: '8px',
+    outline: 'none', transition: 'border-color 0.2s', fontFamily: 'inherit',
   },
-  gameBox: {
-    background: '#f0f4f8',
-    borderRadius: '8px',
-    padding: '12px'
-  },
-  gameTitle: { fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: '#1e3a5f' },
-  hint: { fontSize: '13px', color: '#555', margin: '4px 0' },
+  inputReadonly: { background: '#F9FAFB', color: '#9CA3AF', cursor: 'default' },
+  gameBox: { background: '#EEF3FB', borderRadius: '10px', padding: '14px', border: '1px solid #C7D8F0' },
+  gameTitle: { fontWeight: '700', marginBottom: '10px', fontSize: '14px', color: '#1B3A6B' },
+  hint: { fontSize: '13px', color: '#4B5563', margin: '4px 0', lineHeight: '1.4' },
   submitBtn: {
-    background: '#1e3a5f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '10px 20px',
-    width: '100%',
-    cursor: 'pointer',
-    fontSize: '14px'
+    background: '#1B3A6B', color: '#fff', border: 'none', borderRadius: '8px',
+    padding: '11px', width: '100%', cursor: 'pointer', fontSize: '14px',
+    fontWeight: '600', marginTop: '4px', transition: 'background 0.2s',
   },
-  correct: { color: '#22c55e', fontWeight: '600', fontSize: '14px' },
-  error: { color: '#ef4444', fontSize: '13px', marginBottom: '12px' },
+  correct: { color: '#16A34A', fontWeight: '700', fontSize: '14px', marginTop: '8px' },
+  error: { color: '#DC2626', fontSize: '13px', marginBottom: '12px' },
   enterBtn: {
-    background: '#1e3a5f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '12px',
-    width: '100%',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: '600'
-  },
-  changeNameLink: {
-    background: 'none', border: 'none', color: '#1e3a5f', fontSize: '12px',
-    textDecoration: 'underline', cursor: 'pointer', padding: '4px 0', marginBottom: '8px'
+    background: 'linear-gradient(135deg, #C9A84C, #B8943E)', color: '#fff',
+    border: 'none', borderRadius: '10px', padding: '14px', width: '100%',
+    cursor: 'pointer', fontSize: '16px', fontWeight: '700', marginTop: '8px',
+    boxShadow: '0 4px 12px rgba(201,168,76,0.4)', transition: 'transform 0.1s',
   },
   enterBtnDisabled: {
-    background: '#aaa',
-    color: '#eee',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '12px',
-    width: '100%',
-    cursor: 'not-allowed',
-    fontSize: '16px',
-    fontWeight: '600'
-  }
+    background: '#E5E7EB', color: '#9CA3AF', border: 'none',
+    borderRadius: '10px', padding: '14px', width: '100%',
+    cursor: 'not-allowed', fontSize: '16px', fontWeight: '700', marginTop: '8px',
+  },
+  changeLink: {
+    background: 'none', border: 'none', color: '#1B3A6B', fontSize: '12px',
+    textDecoration: 'underline', cursor: 'pointer', padding: '2px 0',
+  },
 };
