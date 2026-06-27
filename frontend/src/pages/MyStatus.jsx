@@ -2,18 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkMyStatus } from '../api/prayerApi';
 
-const CHURCH_NAMES = {
-  st_michael: 'AMC Paudpod',
-  holy_trinity: 'AMC Carael',
-  public: 'Public Prayers'
-};
-
-const maskName = (name) => {
-  if (!name || name.length <= 2) return '**';
-  const first = name[0];
-  const last = name[name.length - 1];
-  return `${first}${'*'.repeat(Math.min(name.length - 2, 3))}${last}`;
-};
+const CHURCH_NAMES = { st_michael: 'AMC Paudpod', holy_trinity: 'AMC Carael', public: 'Public Prayers' };
 
 export default function MyStatus() {
   const [nameInput, setNameInput] = useState('');
@@ -25,155 +14,163 @@ export default function MyStatus() {
   const navigate = useNavigate();
 
   const handleSearch = async () => {
-    if (!nameInput.trim()) { alert('Please enter your name.'); return; }
-    setLoading(true);
-    setSearched(false);
-    const data = await checkMyStatus(nameInput);
-    setPrayers(data.requests || []);
-    setComments(data.comments || []);
-    setLoading(false);
-    setSearched(true);
+    if (!nameInput.trim()) return;
+    setLoading(true); setSearched(false);
+    try {
+      const data = await checkMyStatus(nameInput);
+      setPrayers(data.requests || []);
+      setComments(data.comments || []);
+    } catch { setPrayers([]); setComments([]); }
+    setLoading(false); setSearched(true);
   };
 
-  // Group comments by church
   const commentsByChurch = {};
   comments.forEach(c => {
-    const church = c.church || 'public';
-    if (!commentsByChurch[church]) commentsByChurch[church] = [];
-    commentsByChurch[church].push(c);
+    const ch = c.church || 'public';
+    if (!commentsByChurch[ch]) commentsByChurch[ch] = [];
+    commentsByChurch[ch].push(c);
   });
 
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <button onClick={() => navigate('/')} style={styles.backBtn}>← Back</button>
-        <h1 style={styles.title}>🔍 Check My Status</h1>
-      </header>
+    <div style={S.pageBg}>
+      <div style={S.container}>
+        <nav style={S.nav}>
+          <button onClick={() => navigate('/')} style={S.backBtn}>Back</button>
+          <h1 style={S.navTitle}>Check My Status</h1>
+          <div style={{ width: '60px' }} />
+        </nav>
 
-      <div style={styles.searchBox}>
-        <input
-          placeholder="Type your name here..."
-          value={nameInput}
-          onChange={e => setNameInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSearch()}
-          style={styles.searchInput}
-        />
-        <button onClick={handleSearch} style={styles.searchBtn}>
-          {loading ? 'Searching...' : '🔍 Search'}
-        </button>
-      </div>
+        <div style={S.searchRow}>
+          <input
+            placeholder="Type your name here..."
+            value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            style={S.searchInput}
+          />
+          <button onClick={handleSearch} disabled={loading} style={S.searchBtn}>
+            {loading ? '...' : 'Search'}
+          </button>
+        </div>
 
-      {searched && (
-        <>
-          <div style={styles.tabs}>
-            <button onClick={() => setActiveTab('comments')}
-              style={activeTab === 'comments' ? styles.tabActive : styles.tab}>
-              💬 Comments
-            </button>
-            <button onClick={() => setActiveTab('prayers')}
-              style={activeTab === 'prayers' ? styles.tabActive : styles.tab}>
-              🙏 Prayer Requests
-            </button>
-          </div>
+        {searched && (
+          <>
+            <div style={S.tabs}>
+              <button onClick={() => setActiveTab('comments')} style={activeTab === 'comments' ? S.tabActive : S.tab}>
+                Comments
+              </button>
+              <button onClick={() => setActiveTab('prayers')} style={activeTab === 'prayers' ? S.tabActive : S.tab}>
+                Prayer Requests
+              </button>
+            </div>
 
-          {/* COMMENTS TAB */}
-          {activeTab === 'comments' && (
-            <div>
-              {comments.length === 0 ? (
-                <p style={{color:'#6B7280'}}>No comments found for <strong>{nameInput}</strong>.</p>
-              ) : (
-                Object.entries(commentsByChurch).map(([church, churchComments]) => (
-                  <div key={church} style={{marginBottom:'20px'}}>
-                    <div style={styles.churchHeader}>
-                      {church === 'st_michael' ? '⛪' : church === 'holy_trinity' ? '✝️' : '🌍'}
-                      {' '}{CHURCH_NAMES[church] || church}
-                    </div>
-                    {churchComments.map((c, i) => (
-                      <div key={i} style={{
-                        ...styles.statusCard,
-                       background: c.status === 'approved' ? '#F0FDF4' : c.status === 'pending' ? '#FFFBEB' : c.status === 'deleted' ? '#F9FAFB' : '#FEF2F2',
-                  border: c.status === 'approved' ? '1px solid #BBF7D0' : c.status === 'pending' ? '1px solid #FDE68A' : c.status === 'deleted' ? '1px solid #E2E8F0' : '1px solid #FECACA'
-                      }}>
-                        <div style={{fontSize:'13px', color:'#6B7280', marginBottom:'4px'}}>
-                          On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}
-                        </div>
-                        <p style={{margin:'0 0 6px', fontSize:'14px', color: c.status === 'deleted' ? '#9CA3AF' : '#555', fontStyle: c.status === 'deleted' ? 'italic' : 'normal'}}>
-                    {c.comment_text}
-                  </p>
-                  {c.status === 'approved' && (
-                    <p style={styles.statusApproved}>✅ Visible — your encouragement is showing</p>
-                  )}
-                  {c.status === 'pending' && (
-                    <p style={styles.statusPending}>⏳ Under Review</p>
-                  )}
-                  {c.status === 'deleted' && (
-                          <div>
-                            <p style={styles.statusRejected}>🗑️ Deleted — will be permanently removed after 30 days</p>
-                            {c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}
-                          </div>
+            {activeTab === 'comments' && (
+              comments.length === 0
+                ? <p style={S.empty}>No comments found for "{nameInput}".</p>
+                : Object.entries(commentsByChurch).map(([church, list]) => (
+                  <div key={church} style={{ marginBottom: '20px' }}>
+                    <div style={S.churchHeader}>{CHURCH_NAMES[church] || church}</div>
+                    {list.map((c, i) => (
+                      <div key={i} style={c.status === 'deleted' ? S.cardDeleted : c.status === 'approved' ? S.cardApproved : S.cardPending}>
+                        <div style={S.cardMeta}>On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}</div>
+                        <p style={{ margin: '0 0 8px', fontSize: '14px', color: c.status === 'deleted' ? '#999' : '#444', fontStyle: c.status === 'deleted' ? 'italic' : 'normal' }}>
+                          {c.comment_text || '***'}
+                        </p>
+                        {c.status === 'approved' && <p style={S.statusGreen}>Visible — your encouragement is showing</p>}
+                        {c.status === 'pending' && <p style={S.statusYellow}>Under Review</p>}
+                        {c.status === 'deleted' && (
+                          <>
+                            <p style={S.statusRed}>Deleted — will be permanently removed after 30 days</p>
+                            {c.deleted_reason && <p style={S.reason}>Reason: {c.deleted_reason}</p>}
+                          </>
                         )}
                       </div>
                     ))}
                   </div>
                 ))
-              )}
-            </div>
-          )}
+            )}
 
-          {/* PRAYERS TAB */}
-          {activeTab === 'prayers' && (
-            <div>
-              {prayers.length === 0 ? (
-                <p style={{color:'#6B7280'}}>No prayer requests found for <strong>{nameInput}</strong>.</p>
-              ) : (
-                prayers.map((r, i) => (
-                  <div key={i} style={{
-                    ...styles.statusCard,
-                    background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
-                    border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
-                  }}>
-                    <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
-                      <span>{r.status === 'approved' ? '✅' : r.status === 'pending' ? '⏳' : '❌'}</span>
-                      <strong>{maskName(r.full_name)}</strong>
-                      <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
-                    </div>
-                    <p style={{margin:'0 0 6px', fontSize:'14px'}}>{r.prayer_message?.slice(0,80)}...</p>
-                    {r.status === 'approved' && <p style={styles.statusApproved}>✅ Approved — visible on Prayer Wall</p>}
-                    {r.status === 'pending' && <p style={styles.statusPending}>⏳ Pending — waiting for admin review</p>}
+            {activeTab === 'prayers' && (
+              prayers.length === 0
+                ? <p style={S.empty}>No prayer requests found for "{nameInput}".</p>
+                : prayers.map((r, i) => (
+                  <div key={i} style={r.status === 'hidden' ? S.cardDeleted : r.status === 'approved' ? S.cardApproved : S.cardPending}>
+                    <div style={S.cardMeta}>{new Date(r.date_added).toLocaleDateString()}</div>
+                    <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#444' }}>
+                      {(r.prayer_message || '').slice(0, 100)}{r.prayer_message?.length > 100 ? '...' : ''}
+                    </p>
+                    {r.status === 'approved' && <p style={S.statusGreen}>Approved — visible on Prayer Wall</p>}
+                    {r.status === 'pending' && <p style={S.statusYellow}>Pending — waiting for admin review</p>}
                     {r.status === 'hidden' && (
-                    <div>
-                      <p style={styles.statusRejected}>❌ Not approved — will be permanently removed after 30 days</p>
-                      {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
-                    </div>
-                  )}
+                      <>
+                        <p style={S.statusRed}>Not approved — will be permanently removed after 30 days</p>
+                        {r.reject_reason && <p style={S.reason}>Reason: {r.reject_reason}</p>}
+                      </>
+                    )}
                   </div>
                 ))
-              )}
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
 
-      <footer style={styles.footer}>© 2026 Prayer Wall — All Rights Reserved</footer>
+        <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
+      </div>
     </div>
   );
 }
 
-const styles = {
-  page: { maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' },
-  header: { display:'flex', alignItems:'center', gap:'12px', marginBottom:'24px' },
-  backBtn: { background:'none', border:'1px solid #E2E8F0', borderRadius:'6px', padding:'6px 12px', cursor:'pointer', fontSize:'13px', color:'#1B3A6B' },
-  title: { color:'#1B3A6B', margin:0, fontFamily:'Georgia, serif' },
-  searchBox: { display:'flex', gap:'8px', marginBottom:'20px' },
-  searchInput: { flex:1, padding:'10px', border:'1px solid #ccc', borderRadius:'6px', fontSize:'14px' },
-  searchBtn: { background:'#1B3A6B', color:'white', border:'none', padding:'10px 16px', borderRadius:'6px', cursor:'pointer', fontSize:'14px', whiteSpace:'nowrap' },
-  tabs: { display:'flex', gap:'8px', marginBottom:'16px' },
-  tab: { flex:1, padding:'10px', border:'1px solid #E2E8F0', borderRadius:'6px', background:'#fff', color:'#6B7280', cursor:'pointer', fontSize:'14px' },
-  tabActive: { flex:1, padding:'10px', border:'1px solid #1B3A6B', borderRadius:'6px', background:'#1B3A6B', color:'#fff', cursor:'pointer', fontSize:'14px' },
-  churchHeader: { background:'#1B3A6B', color:'white', padding:'8px 12px', borderRadius:'6px', fontWeight:'600', fontSize:'14px', marginBottom:'8px' },
-  statusCard: { borderRadius:'8px', padding:'12px', marginBottom:'8px' },
-  statusApproved: { margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600' },
-  statusPending: { margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600' },
-  statusRejected: { margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600' },
-  footer: { textAlign:'center', marginTop:'40px', paddingTop:'20px', borderTop:'1px solid #E2E8F0', color:'#6B7280', fontSize:'13px' }
+const navy = '#1B3A6B';
+const S = {
+  pageBg: { minHeight: '100vh', background: '#F0F4F9', fontFamily: "'Segoe UI', Arial, sans-serif" },
+  container: { maxWidth: '680px', margin: '0 auto', padding: '0 16px 40px' },
+  nav: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '14px 0', borderBottom: '1px solid #DDE3ED', marginBottom: '20px',
+    position: 'sticky', top: 0, background: '#F0F4F9', zIndex: 10,
+  },
+  navTitle: { margin: 0, fontSize: '17px', fontWeight: '800', color: navy },
+  backBtn: {
+    background: 'transparent', border: `1.5px solid ${navy}`, borderRadius: '8px',
+    padding: '7px 14px', color: navy, cursor: 'pointer', fontSize: '13px',
+    fontWeight: '600', fontFamily: 'inherit',
+  },
+  searchRow: { display: 'flex', gap: '10px', marginBottom: '20px' },
+  searchInput: {
+    flex: 1, padding: '11px 14px', border: '1.5px solid #D1D5DB',
+    borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit',
+    outline: 'none', background: '#fff', boxSizing: 'border-box',
+  },
+  searchBtn: {
+    background: navy, color: '#fff', border: 'none', borderRadius: '8px',
+    padding: '11px 20px', cursor: 'pointer', fontSize: '14px',
+    fontWeight: '700', fontFamily: 'inherit', whiteSpace: 'nowrap',
+  },
+  tabs: { display: 'flex', gap: '8px', marginBottom: '16px' },
+  tab: {
+    flex: 1, padding: '10px', border: '1.5px solid #DDE3ED', borderRadius: '8px',
+    background: '#fff', color: '#666', cursor: 'pointer', fontSize: '13px',
+    fontWeight: '500', fontFamily: 'inherit',
+  },
+  tabActive: {
+    flex: 1, padding: '10px', border: `1.5px solid ${navy}`, borderRadius: '8px',
+    background: navy, color: '#fff', cursor: 'pointer', fontSize: '13px',
+    fontWeight: '700', fontFamily: 'inherit',
+  },
+  churchHeader: {
+    background: navy, color: '#fff', padding: '9px 14px',
+    borderRadius: '8px', fontWeight: '700', fontSize: '13px', marginBottom: '10px',
+  },
+  cardApproved: { background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '14px', marginBottom: '10px' },
+  cardPending: { background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '14px', marginBottom: '10px' },
+  cardDeleted: { background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '14px', marginBottom: '10px' },
+  cardMeta: { fontSize: '12px', color: '#999', marginBottom: '6px' },
+  statusGreen: { margin: 0, fontSize: '12px', fontWeight: '700', color: '#16A34A' },
+  statusYellow: { margin: 0, fontSize: '12px', fontWeight: '700', color: '#D97706' },
+  statusRed: { margin: 0, fontSize: '12px', fontWeight: '700', color: '#DC2626' },
+  reason: { margin: '4px 0 0', fontSize: '12px', color: '#666' },
+  empty: { textAlign: 'center', color: '#888', padding: '30px 0', fontSize: '14px' },
+  footer: {
+    textAlign: 'center', marginTop: '48px', paddingTop: '20px',
+    borderTop: '1px solid #DDE3ED', color: '#AAA', fontSize: '12px',
+  },
 };

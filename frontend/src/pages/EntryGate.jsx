@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getRandomGame } from '../api/prayerApi';
 
 export default function EntryGate() {
-  const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loadingGame, setLoadingGame] = useState(true);
   const [hintIndex, setHintIndex] = useState(0);
@@ -25,11 +23,12 @@ export default function EntryGate() {
   }, []);
 
   const handleGuess = () => {
+    if (!guess.trim()) return;
     if (guess.trim().toLowerCase() === game.answer.toLowerCase()) {
       setSolved(true); setError('');
     } else {
-      setError('Not quite 鈥� try again!');
-      if (hintIndex < game.hints.length - 1) setHintIndex(hintIndex + 1);
+      setError('Not quite — try again!');
+      if (hintIndex < game.hints.length - 1) setHintIndex(i => i + 1);
     }
   };
 
@@ -43,43 +42,55 @@ export default function EntryGate() {
   return (
     <div style={S.page}>
       <div style={S.card}>
-        <div style={S.iconWrap}>馃檹</div>
+        <div style={S.iconArea}>
+          <img
+            src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f64f/512.png"
+            alt="praying hands"
+            width="56"
+            height="56"
+            style={{ display: 'block', margin: '0 auto 10px' }}
+            onError={e => { e.target.style.display = 'none'; }}
+          />
+        </div>
+
         <h1 style={S.title}>Welcome to Prayer Wall</h1>
         <p style={S.subtitle}>We're glad you're here. Please complete the steps below to continue.</p>
 
         {/* Step 1 */}
         <div style={S.step}>
-          <span style={S.stepNum}>1</span>
+          <div style={S.stepNum}>1</div>
           <div style={S.stepBody}>
-            <label style={S.label}>Enter Your Name</label>
+            <div style={S.label}>Enter Your Name</div>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Type your name here..."
               readOnly={isReturning && !unlocked}
-              style={{ ...S.input, ...(isReturning && !unlocked ? S.inputReadonly : {}) }}
+              style={isReturning && !unlocked ? { ...S.input, ...S.inputReadonly } : S.input}
             />
             {isReturning && !unlocked && (
-              <button onClick={() => setUnlocked(true)} style={S.changeLink}>Not you? Change name</button>
+              <button onClick={() => setUnlocked(true)} style={S.linkBtn}>
+                Not you? Change name
+              </button>
             )}
           </div>
         </div>
 
         {/* Step 2 */}
         <div style={S.step}>
-          <span style={S.stepNum}>2</span>
+          <div style={S.stepNum}>2</div>
           <div style={S.stepBody}>
-            <label style={S.label}>Answer this to continue:</label>
+            <div style={S.label}>Answer this to continue:</div>
             {loadingGame ? (
-              <p style={S.hint}>Loading game...</p>
+              <p style={S.muted}>Loading game...</p>
             ) : !game ? (
-              <p style={{ color: '#DC2626', fontSize: '13px' }}>Could not load game. Refresh to try again.</p>
+              <p style={S.errText}>Could not load game. Please refresh.</p>
             ) : (
               <div style={S.gameBox}>
-                <p style={S.gameTitle}>鉁� Guess the Bible Character</p>
+                <div style={S.gameTitle}>Guess the Bible Character</div>
                 {game.hints.slice(0, hintIndex + 1).map((hint, i) => (
-                  <p key={i} style={S.hint}>馃挕 Hint {i + 1}: {hint}</p>
+                  <div key={i} style={S.hint}>Hint {i + 1}: {hint}</div>
                 ))}
                 {!solved ? (
                   <>
@@ -87,24 +98,27 @@ export default function EntryGate() {
                       type="text"
                       value={guess}
                       onChange={e => setGuess(e.target.value)}
-                      placeholder="Type your answer..."
-                      style={S.input}
+                      placeholder="Your answer..."
+                      style={{ ...S.input, marginTop: '10px' }}
                       onKeyDown={e => e.key === 'Enter' && handleGuess()}
                     />
-                    <button onClick={handleGuess} style={S.submitBtn}>Submit</button>
+                    {error && <p style={S.errText}>{error}</p>}
+                    <button onClick={handleGuess} style={S.navyBtn}>Submit</button>
                   </>
                 ) : (
-                  <p style={S.correct}>鉁� Correct! You may now enter.</p>
+                  <p style={S.correctText}>Correct! You may now enter.</p>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {error && <p style={S.error}>{error}</p>}
-
-        <button onClick={handleEnter} disabled={!solved} style={solved ? S.enterBtn : S.enterBtnDisabled}>
-          {solved ? '馃檹 Enter' : '馃敀 Enter'}
+        <button
+          onClick={handleEnter}
+          disabled={!solved}
+          style={solved ? S.enterBtn : S.enterBtnDisabled}
+        >
+          {solved ? 'Enter' : 'Enter'}
         </button>
       </div>
     </div>
@@ -117,58 +131,161 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(160deg, #1B3A6B 0%, #2A5298 50%, #87CEEB 100%)',
-    padding: '20px',
+    background: 'linear-gradient(180deg, #b8d4ed 0%, #d6e9f8 50%, #eaf4fb 100%)',
+    padding: '24px 16px',
+    fontFamily: "'Segoe UI', Arial, sans-serif",
   },
   card: {
-    background: '#fff',
+    background: '#ffffff',
     borderRadius: '20px',
     padding: '36px 28px',
     maxWidth: '440px',
     width: '100%',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.14)',
     textAlign: 'center',
   },
-  iconWrap: { fontSize: '44px', marginBottom: '10px', lineHeight: 1 },
-  title: { fontSize: '22px', fontWeight: '700', color: '#1B3A6B', margin: '8px 0 6px', fontFamily: 'Georgia, serif' },
-  subtitle: { color: '#6B7280', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5' },
-  step: { display: 'flex', gap: '14px', marginBottom: '22px', textAlign: 'left' },
+  iconArea: { marginBottom: '4px' },
+  title: {
+    fontSize: '22px',
+    fontWeight: '800',
+    color: '#1B3A6B',
+    margin: '0 0 8px',
+    fontFamily: "'Segoe UI', Arial, sans-serif",
+  },
+  subtitle: {
+    color: '#888',
+    fontSize: '14px',
+    lineHeight: '1.55',
+    marginBottom: '28px',
+  },
+  step: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '22px',
+    textAlign: 'left',
+  },
   stepNum: {
-    background: '#1B3A6B', color: '#fff', borderRadius: '50%',
-    width: '28px', height: '28px', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0, marginTop: '2px',
+    background: '#1B3A6B',
+    color: '#fff',
+    borderRadius: '50%',
+    width: '28px',
+    height: '28px',
+    minWidth: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '13px',
+    fontWeight: '700',
+    marginTop: '2px',
   },
   stepBody: { flex: 1 },
-  label: { display: 'block', fontWeight: '600', marginBottom: '8px', color: '#1B3A6B', fontSize: '14px' },
+  label: {
+    fontWeight: '700',
+    color: '#1a1a1a',
+    fontSize: '14px',
+    marginBottom: '8px',
+  },
   input: {
-    width: '100%', padding: '11px 14px', border: '1.5px solid #D1D5DB',
-    borderRadius: '8px', fontSize: '14px', marginBottom: '8px',
-    outline: 'none', transition: 'border-color 0.2s', fontFamily: 'inherit',
+    width: '100%',
+    padding: '11px 13px',
+    border: '1.5px solid #D1D5DB',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: 'inherit',
+    outline: 'none',
+    boxSizing: 'border-box',
+    color: '#333',
+    background: '#fff',
+    display: 'block',
   },
-  inputReadonly: { background: '#F9FAFB', color: '#9CA3AF', cursor: 'default' },
-  gameBox: { background: '#EEF3FB', borderRadius: '10px', padding: '14px', border: '1px solid #C7D8F0' },
-  gameTitle: { fontWeight: '700', marginBottom: '10px', fontSize: '14px', color: '#1B3A6B' },
-  hint: { fontSize: '13px', color: '#4B5563', margin: '4px 0', lineHeight: '1.4' },
-  submitBtn: {
-    background: '#1B3A6B', color: '#fff', border: 'none', borderRadius: '8px',
-    padding: '11px', width: '100%', cursor: 'pointer', fontSize: '14px',
-    fontWeight: '600', marginTop: '4px', transition: 'background 0.2s',
+  inputReadonly: {
+    background: '#F5F5F5',
+    color: '#999',
+    cursor: 'default',
   },
-  correct: { color: '#16A34A', fontWeight: '700', fontSize: '14px', marginTop: '8px' },
-  error: { color: '#DC2626', fontSize: '13px', marginBottom: '12px' },
+  linkBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#1B3A6B',
+    fontSize: '12px',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    padding: '4px 0',
+    fontFamily: 'inherit',
+  },
+  gameBox: {
+    background: '#EEF4FB',
+    border: '1px solid #C8DDF0',
+    borderRadius: '10px',
+    padding: '14px',
+  },
+  gameTitle: {
+    fontWeight: '700',
+    color: '#1B3A6B',
+    fontSize: '14px',
+    marginBottom: '8px',
+  },
+  hint: {
+    fontSize: '13px',
+    color: '#555',
+    marginBottom: '4px',
+    lineHeight: '1.4',
+  },
+  navyBtn: {
+    background: '#1B3A6B',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '10px',
+    width: '100%',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    marginTop: '8px',
+    fontFamily: 'inherit',
+  },
+  correctText: {
+    color: '#16A34A',
+    fontWeight: '700',
+    fontSize: '14px',
+    marginTop: '10px',
+  },
+  errText: {
+    color: '#DC2626',
+    fontSize: '12px',
+    margin: '6px 0 0',
+  },
+  muted: {
+    color: '#999',
+    fontSize: '13px',
+  },
   enterBtn: {
-    background: 'linear-gradient(135deg, #C9A84C, #B8943E)', color: '#fff',
-    border: 'none', borderRadius: '10px', padding: '14px', width: '100%',
-    cursor: 'pointer', fontSize: '16px', fontWeight: '700', marginTop: '8px',
-    boxShadow: '0 4px 12px rgba(201,168,76,0.4)', transition: 'transform 0.1s',
+    background: '#1B3A6B',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '10px',
+    padding: '14px',
+    width: '100%',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: '700',
+    marginTop: '6px',
+    fontFamily: 'inherit',
+    boxShadow: '0 4px 14px rgba(27,58,107,0.35)',
+    letterSpacing: '0.3px',
   },
   enterBtnDisabled: {
-    background: '#E5E7EB', color: '#9CA3AF', border: 'none',
-    borderRadius: '10px', padding: '14px', width: '100%',
-    cursor: 'not-allowed', fontSize: '16px', fontWeight: '700', marginTop: '8px',
-  },
-  changeLink: {
-    background: 'none', border: 'none', color: '#1B3A6B', fontSize: '12px',
-    textDecoration: 'underline', cursor: 'pointer', padding: '2px 0',
+    background: '#C8C8C8',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '10px',
+    padding: '14px',
+    width: '100%',
+    cursor: 'not-allowed',
+    fontSize: '16px',
+    fontWeight: '700',
+    marginTop: '6px',
+    fontFamily: 'inherit',
   },
 };
+
