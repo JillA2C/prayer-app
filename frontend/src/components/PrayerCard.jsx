@@ -25,8 +25,8 @@ export default function PrayerCard({ request }) {
     } catch (e) { console.error(e); }
   };
 
-  const msg = request.prayer_message || '';
-  const preview = msg.length > 160 ? msg.slice(0, 160) + '...' : msg;
+  const msg = request.prayer_message || request.preview || request.message || '';
+const preview = msg.length > 160 ? msg.slice(0, 160) + '...' : msg;
 
   return (
     <div style={S.card}>

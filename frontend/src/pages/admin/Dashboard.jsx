@@ -34,6 +34,12 @@ export default function Dashboard() {
   const [rejectingCommentId, setRejectingCommentId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [publicView, setPublicView] = useState('all');
+  const [publicChurch, setPublicChurch] = useState(null);
+  const [showPublicView, setShowPublicView] = useState(false);
+const [publicMyStatus, setPublicMyStatus] = useState(false);
+const [publicStatusName, setPublicStatusName] = useState('');
+const [publicStatusResults, setPublicStatusResults] = useState({ requests: [], comments: [] });
+const [publicStatusLoading, setPublicStatusLoading] = useState(false);
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
   const [myStatuses, setMyStatuses] = useState([]);
@@ -46,6 +52,7 @@ export default function Dashboard() {
   const load = async () => {
     const data = await adminGetRequests();
     const filtered = data.requests
+    
   .filter(r => r.church === church)
   .filter(r => church === 'public' ? true : r.status !== 'pending')
   .map(r => ({
@@ -206,7 +213,21 @@ export default function Dashboard() {
 
         <button onClick={() => { setShowGames(true); loadGames(); }} style={styles.statusBtn}>
           🎮 Manage Entry Gate Games
-        </button>
+      </button>
+
+      <button onClick={async () => {
+        setShowPublicView(true);
+        setPublicChurch(null);
+        setPublicView('all');
+        const data = await adminGetRequests();
+        setRequests(data.requests.map(r => ({
+          ...r,
+          display_name: r.show_name ? r.full_name : 'Anonymous',
+          prayer_message: r.prayer_message || ''
+        })));
+      }} style={{...styles.statusBtn, marginTop:'10px', background:'#1B3A6B', color:'#fff'}}>
+        🌐 Public View
+      </button>
 
         {showGames && (
           <div style={styles.overlay}>
@@ -264,6 +285,186 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        {showPublicView && (
+  <div style={styles.overlay}>
+    <div style={{...styles.popup, maxWidth:'680px', width:'95%', maxHeight:'90vh', overflowY:'auto'}}>
+      
+      {/* Header */}
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px', position:'sticky', top:0, background:'#fff', paddingBottom:'12px', borderBottom:'1px solid #E2E8F0'}}>
+        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+          {publicChurch && (
+            <button onClick={() => { setPublicChurch(null); setPublicMyStatus(false); }} style={styles.backBtn}>← Back</button>
+          )}
+          <strong style={{color:'#1B3A6B', fontSize:'16px'}}>
+            {!publicChurch ? '🌐 Public View' : `${CHURCHES.find(c=>c.id===publicChurch)?.icon} ${CHURCHES.find(c=>c.id===publicChurch)?.name}`}
+          </strong>
+        </div>
+        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+          {publicChurch && (
+            <button onClick={() => { setPublicMyStatus(!publicMyStatus); setPublicStatusName(''); setPublicStatusResults({ requests:[], comments:[] }); }} style={{...styles.backBtn, background: publicMyStatus ? '#1B3A6B' : 'none', color: publicMyStatus ? '#fff' : '#1B3A6B'}}>
+              🔍 My Status
+            </button>
+          )}
+          <button onClick={() => { setShowPublicView(false); setPublicChurch(null); setPublicMyStatus(false); }} style={styles.closeBtn}>✕ Close</button>
+        </div>
+      </div>
+
+      {/* Church selector */}
+      {!publicChurch ? (
+        <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+          <p style={{color:'#6B7280', fontSize:'13px', margin:'0 0 8px'}}>Select a church to preview what visitors see.</p>
+          {CHURCHES.map(c => (
+            <button key={c.id} onClick={() => { setPublicChurch(c.id); setPublicView('all'); setPublicSearch(''); setPublicDateFilter(''); setPublicMyStatus(false); }} style={styles.churchCard}>
+              <span style={styles.churchIcon}>{c.icon}</span>
+              <div style={{textAlign:'left'}}>
+                <div style={styles.churchName}>{c.name}</div>
+                <div style={styles.churchTagline}>{c.tagline}</div>
+              </div>
+              <span style={{marginLeft:'auto', fontSize:'20px'}}>›</span>
+            </button>
+          ))}
+        </div>
+
+      /* My Status view */
+      ) : publicMyStatus ? (
+        <div>
+          <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+            <input
+              placeholder="Type your name to check status..."
+              value={publicStatusName}
+              onChange={e => setPublicStatusName(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && publicStatusName.trim()) {
+                  setPublicStatusLoading(true);
+                  const data = await checkMyStatus(publicStatusName);
+                  setPublicStatusResults({ requests: data.requests||[], comments: data.comments||[] });
+                  setPublicStatusLoading(false);
+                }
+              }}
+              style={{flex:1, padding:'8px 12px', border:'1px solid #ccc', borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'}}
+            />
+            <button onClick={async () => {
+              if (!publicStatusName.trim()) return;
+              setPublicStatusLoading(true);
+              const data = await checkMyStatus(publicStatusName);
+              setPublicStatusResults({ requests: data.requests||[], comments: data.comments||[] });
+              setPublicStatusLoading(false);
+            }} style={styles.saveBtn}>Search</button>
+          </div>
+
+          {publicStatusLoading && <p style={{color:'#6B7280'}}>Searching...</p>}
+
+          {publicStatusResults.requests.length === 0 && publicStatusResults.comments.length === 0 && !publicStatusLoading && publicStatusName && (
+            <p style={{color:'#6B7280'}}>No results found for <strong>{publicStatusName}</strong>.</p>
+          )}
+
+          {publicStatusResults.requests.length > 0 && (
+            <>
+              <h4 style={{color:'#1B3A6B', margin:'0 0 8px'}}>Prayer Requests</h4>
+              {publicStatusResults.requests.map((r, i) => (
+                <div key={i} style={{
+                  padding:'12px', borderRadius:'8px', marginBottom:'8px',
+                  background: r.status==='approved' ? '#F0FDF4' : r.status==='pending' ? '#FFFBEB' : '#FEF2F2',
+                  border: r.status==='approved' ? '1px solid #BBF7D0' : r.status==='pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+                }}>
+                  <div style={{display:'flex', gap:'8px', marginBottom:'4px'}}>
+                    <strong style={{fontSize:'14px'}}>{r.full_name}</strong>
+                    <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{margin:'0 0 6px', fontSize:'13px', color:'#444'}}>{r.prayer_message?.slice(0,80)}...</p>
+                  {r.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Approved — visible on Prayer Wall</span>}
+                  {r.status==='pending' && <span style={{fontSize:'12px', color:'#D97706', fontWeight:'600'}}>Pending review</span>}
+                  {r.status==='hidden' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Not approved</span>{r.reject_reason && <span style={{fontSize:'12px', color:'#6B7280'}}> — {r.reject_reason}</span>}</div>}
+                </div>
+              ))}
+            </>
+          )}
+
+          {publicStatusResults.comments.length > 0 && (
+            <>
+              <h4 style={{color:'#1B3A6B', margin:'12px 0 8px'}}>Comments</h4>
+              {publicStatusResults.comments.map((c, i) => (
+                <div key={i} style={{
+                  padding:'12px', borderRadius:'8px', marginBottom:'8px',
+                  background: c.status==='approved' ? '#F0FDF4' : c.status==='deleted' ? '#FEF2F2' : '#FFFBEB',
+                  border: c.status==='approved' ? '1px solid #BBF7D0' : c.status==='deleted' ? '1px solid #FECACA' : '1px solid #FDE68A'
+                }}>
+                  <div style={{fontSize:'12px', color:'#6B7280', marginBottom:'4px'}}>On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}</div>
+                  <p style={{margin:'0 0 6px', fontSize:'13px', color: c.status==='deleted' ? '#9CA3AF' : '#444', fontStyle: c.status==='deleted' ? 'italic' : 'normal'}}>{c.comment_text || '***'}</p>
+                  {c.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Visible</span>}
+                  {c.status==='deleted' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Deleted — will be permanently removed after 30 days</span>{c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}</div>}
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+      /* Prayer wall view */
+      ) : (
+        <>
+          {publicChurch === 'public' && (
+            <div style={{background:'#1B3A6B', color:'#fff', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', fontWeight:'600'}}>
+              Submit Prayer Request — visible to Public Prayers only
+            </div>
+          )}
+
+          <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+            {[['all','View All'],['name','By Name'],['date','By Date']].map(([mode,label]) => (
+              <button key={mode} onClick={() => setPublicView(mode)} style={publicView===mode ? styles.tabActive : styles.tab}>{label}</button>
+            ))}
+          </div>
+
+          {publicView === 'name' && (
+            <input placeholder="Type a name..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+          )}
+          {publicView === 'date' && (
+            <input type="date" value={publicDateFilter} onChange={e => setPublicDateFilter(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+          )}
+
+          {(() => {
+            let displayed = requests
+              .filter(r => r.status === 'approved')
+              .filter(r => r.church === publicChurch)
+              .map(r => ({
+                ...r,
+                prayer_message: r.prayer_message || r.preview || '',
+                display_name: r.display_name || (r.show_name ? r.full_name : 'Anonymous'),
+              }));
+            if (publicView==='name' && publicSearch)
+              displayed = displayed.filter(r => r.display_name.toLowerCase().includes(publicSearch.toLowerCase()));
+            if (publicView==='date' && publicDateFilter)
+              displayed = displayed.filter(r => new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter);
+            if (publicView==='name') {
+              displayed = [...displayed].sort((a,b) => a.display_name.localeCompare(b.display_name));
+              return displayed.length === 0
+                ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
+                : displayed.map(r => <PrayerCard key={r.id} request={r} />);
+            }
+            const groups = {};
+            displayed.forEach(r => {
+              const dateKey = new Date(r.date_added).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+              if (!groups[dateKey]) groups[dateKey] = [];
+              groups[dateKey].push(r);
+            });
+            const sortedGroups = Object.entries(groups).sort((a,b) => new Date(b[0]) - new Date(a[0]));
+            return sortedGroups.length === 0
+              ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
+              : sortedGroups.map(([date, entries]) => (
+                <div key={date} style={{marginBottom:'24px'}}>
+                  <div style={{background:'#1B3A6B', color:'white', padding:'8px 14px', borderRadius:'8px', fontWeight:'600', fontSize:'14px', marginBottom:'10px'}}>
+                    {date}
+                  </div>
+                  {entries.map(r => <PrayerCard key={r.id} request={r} />)}
+                </div>
+              ));
+          })()}
+        </>
+      )}
+    </div>
+  </div>
+)}
       </div>
     );
   }
@@ -283,7 +484,7 @@ export default function Dashboard() {
 
       <div style={{display:'flex', gap:'8px', margin:'16px 0'}}>
         <button onClick={() => setAdminTab('manage')} style={adminTab === 'manage' ? styles.tabActive : styles.tab}>⚙️ Manage</button>
-        <button onClick={() => setAdminTab('public')} style={adminTab === 'public' ? styles.tabActive : styles.tab}>🌐 Public View</button>
+        <button onClick={async () => { setAdminTab('public'); setPublicChurch(null); const data = await adminGetRequests(); const all = data.requests.map(r => ({...r, display_name: r.show_name ? r.full_name : 'Anonymous', prayer_message: r.prayer_message || ''})); setRequests(all); }} style={adminTab === 'public' ? styles.tabActive : styles.tab}>🌐 Public View</button>
       </div>
 
       {/* MANAGE TAB */}
@@ -570,16 +771,41 @@ export default function Dashboard() {
       )}
 
       {/* PUBLIC VIEW TAB */}
-      {adminTab === 'public' && (
-        <>
-          <p style={{color:'#6B7280', fontSize:'13px', marginBottom:'8px'}}>
-            This is how visitors see the prayer wall.
-          </p>
-                  {church === 'public' && (
+{adminTab === 'public' && (
+  <>
+    {!publicChurch ? (
+      <>
+        <p style={{color:'#6B7280', fontSize:'13px', marginBottom:'12px'}}>
+          Select a church to preview what visitors see.
+        </p>
+        <div style={{display:'flex', flexDirection:'column', gap:'10px', maxWidth:'500px'}}>
+          {CHURCHES.map(c => (
+            <button key={c.id} onClick={() => { setPublicChurch(c.id); setPublicView('all'); setPublicSearch(''); setPublicDateFilter(''); }} style={styles.churchCard}>
+              <span style={styles.churchIcon}>{c.icon}</span>
+              <div style={{textAlign:'left'}}>
+                <div style={styles.churchName}>{c.name}</div>
+                <div style={styles.churchTagline}>{c.tagline}</div>
+              </div>
+              <span style={{marginLeft:'auto', fontSize:'20px'}}>›</span>
+            </button>
+          ))}
+        </div>
+      </>
+    ) : (
+      <>
+        <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
+          <button onClick={() => setPublicChurch(null)} style={styles.backBtn}>← Back</button>
+          <span style={{fontWeight:'700', color:'#1B3A6B', fontSize:'15px'}}>
+            {CHURCHES.find(c => c.id === publicChurch)?.icon} {CHURCHES.find(c => c.id === publicChurch)?.name} — Public View
+          </span>
+        </div>
+
+        {publicChurch === 'public' && (
           <div style={{background:'#1B3A6B', color:'#fff', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', fontWeight:'600'}}>
             Submit Prayer Request — visible to Public only
           </div>
         )}
+
         <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
           <button onClick={() => setPublicView('all')} style={publicView === 'all' ? styles.tabActive : styles.tab}>View All</button>
           <button onClick={() => setPublicView('name')} style={publicView === 'name' ? styles.tabActive : styles.tab}>By Name</button>
@@ -587,97 +813,97 @@ export default function Dashboard() {
           <button onClick={() => setPublicView('status')} style={publicView === 'status' ? styles.tabActive : styles.tab}>My Status</button>
         </div>
 
-          {publicView === 'name' && (
-            <input placeholder="Type a name..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
-              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
-          )}
-          {publicView === 'date' && (
-            <input type="date" value={publicDateFilter} onChange={e => setPublicDateFilter(e.target.value)}
-              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
-          )}
+        {publicView === 'name' && (
+          <input placeholder="Type a name..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
+            style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+        )}
+        {publicView === 'date' && (
+          <input type="date" value={publicDateFilter} onChange={e => setPublicDateFilter(e.target.value)}
+            style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+        )}
 
-          {publicView === 'status' ? (
-            <div>
-              <input placeholder="Type a name to check status..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
-                style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'8px', boxSizing:'border-box'}} />
-              <button onClick={async () => {
-                if (!publicSearch.trim()) return;
-                setStatusLoading(true);
-                const data = await checkMyStatus(publicSearch);
-                setMyStatuses(data.requests || []);
-                setMyComments(data.comments || []);
-                setStatusLoading(false);
-                setStatusChecked(true);
-              }} style={styles.saveBtn}>🔍 Check Status</button>
-              {statusLoading && <p style={{color:'#6B7280', marginTop:'8px'}}>Checking...</p>}
-              {statusChecked && myStatuses.length === 0 && (
-                <p style={{color:'#6B7280', marginTop:'8px'}}>No prayer requests found for <strong>{publicSearch}</strong>.</p>
-              )}
-              {myStatuses.map((r, i) => (
-                <div key={i} style={{
-                  padding:'12px', borderRadius:'8px', marginTop:'8px',
-                  background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
-                  border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
-                }}>
-                  <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
-                    <span>{r.status === 'approved' ? '✅' : r.status === 'pending' ? '⏳' : '❌'}</span>
-                    <strong>{r.full_name}</strong>
-                    <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
-                  </div>
-                  <p style={{margin:'0 0 4px', fontSize:'14px'}}>{r.prayer_message?.slice(0,60)}...</p>
-                  {r.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>✅ Approved</p>}
-                  {r.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>⏳ Pending review</p>}
-                  {r.status === 'hidden' && (
-                    <div>
-                      <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>❌ Not approved</p>
-                      {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
-                    </div>
-                  )}
+        {publicView === 'status' ? (
+          <div>
+            <input placeholder="Type a name to check status..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'8px', boxSizing:'border-box'}} />
+            <button onClick={async () => {
+              if (!publicSearch.trim()) return;
+              setStatusLoading(true);
+              const data = await checkMyStatus(publicSearch);
+              setMyStatuses(data.requests || []);
+              setMyComments(data.comments || []);
+              setStatusLoading(false);
+              setStatusChecked(true);
+            }} style={styles.saveBtn}>Search</button>
+            {statusLoading && <p style={{color:'#6B7280', marginTop:'8px'}}>Checking...</p>}
+            {statusChecked && myStatuses.length === 0 && (
+              <p style={{color:'#6B7280', marginTop:'8px'}}>No results for <strong>{publicSearch}</strong>.</p>
+            )}
+            {myStatuses.map((r, i) => (
+              <div key={i} style={{
+                padding:'12px', borderRadius:'8px', marginTop:'8px',
+                background: r.status === 'approved' ? '#F0FDF4' : r.status === 'pending' ? '#FFFBEB' : '#FEF2F2',
+                border: r.status === 'approved' ? '1px solid #BBF7D0' : r.status === 'pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+              }}>
+                <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px'}}>
+                  <strong>{r.full_name}</strong>
+                  <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            (() => {
-              let displayed = requests.filter(r => r.status === 'approved').map(r => ({
+                <p style={{margin:'0 0 4px', fontSize:'14px'}}>{r.prayer_message?.slice(0,60)}...</p>
+                {r.status === 'approved' && <p style={{margin:0, fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Approved</p>}
+                {r.status === 'pending' && <p style={{margin:0, fontSize:'12px', color:'#D97706', fontWeight:'600'}}>Pending review</p>}
+                {r.status === 'hidden' && (
+                  <div>
+                    <p style={{margin:0, fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Not approved</p>
+                    {r.reject_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {r.reject_reason}</p>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          (() => {
+            let displayed = requests
+              .filter(r => r.status === 'approved')
+              .filter(r => r.church === publicChurch)
+              .map(r => ({
                 ...r,
                 prayer_message: r.prayer_message || r.preview || '',
                 display_name: r.display_name || (r.show_name ? r.full_name : 'Anonymous'),
               }));
-              if (publicView === 'name' && publicSearch) {
-                displayed = displayed.filter(r => r.display_name.toLowerCase().includes(publicSearch.toLowerCase()));
-              }
-              if (publicView === 'date' && publicDateFilter) {
-                displayed = displayed.filter(r => new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter);
-              }
-              if (publicView === 'name') {
-                displayed = [...displayed].sort((a,b) => a.display_name.localeCompare(b.display_name));
-                return displayed.length === 0
-                  ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
-                  : displayed.map(r => <PrayerCard key={r.id} request={r} />);
-              }
-              // Group by date for 'all' and 'date' views
-              const groups = {};
-              displayed.forEach(r => {
-                const dateKey = new Date(r.date_added).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
-                if (!groups[dateKey]) groups[dateKey] = [];
-                groups[dateKey].push(r);
-              });
-              const sortedGroups = Object.entries(groups).sort((a,b) => new Date(b[0]) - new Date(a[0]));
-              return sortedGroups.length === 0
+            if (publicView === 'name' && publicSearch)
+              displayed = displayed.filter(r => r.display_name.toLowerCase().includes(publicSearch.toLowerCase()));
+            if (publicView === 'date' && publicDateFilter)
+              displayed = displayed.filter(r => new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter);
+            if (publicView === 'name') {
+              displayed = [...displayed].sort((a,b) => a.display_name.localeCompare(b.display_name));
+              return displayed.length === 0
                 ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
-                : sortedGroups.map(([date, entries]) => (
-                  <div key={date} style={{marginBottom:'24px'}}>
-                    <div style={{background:'#1B3A6B', color:'white', padding:'8px 14px', borderRadius:'8px', fontWeight:'600', fontSize:'14px', marginBottom:'10px'}}>
-                      📅 {date}
-                    </div>
-                    {entries.map(r => <PrayerCard key={r.id} request={r} />)}
+                : displayed.map(r => <PrayerCard key={r.id} request={r} />);
+            }
+            const groups = {};
+            displayed.forEach(r => {
+              const dateKey = new Date(r.date_added).toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+              if (!groups[dateKey]) groups[dateKey] = [];
+              groups[dateKey].push(r);
+            });
+            const sortedGroups = Object.entries(groups).sort((a,b) => new Date(b[0]) - new Date(a[0]));
+            return sortedGroups.length === 0
+              ? <p style={{color:'#6B7280'}}>No prayer requests found.</p>
+              : sortedGroups.map(([date, entries]) => (
+                <div key={date} style={{marginBottom:'24px'}}>
+                  <div style={{background:'#1B3A6B', color:'white', padding:'8px 14px', borderRadius:'8px', fontWeight:'600', fontSize:'14px', marginBottom:'10px'}}>
+                    {date}
                   </div>
-                ));
-            })()
-          )}
-        </>
-      )}
-
+                  {entries.map(r => <PrayerCard key={r.id} request={r} />)}
+                </div>
+              ));
+          })()
+        )}
+      </>
+    )}
+  </>
+)}
       <footer style={{textAlign:'center', marginTop:'40px', paddingTop:'20px', borderTop:'1px solid #E2E8F0', color:'#6B7280', fontSize:'13px'}}>
         © 2026 Prayer Wall — All Rights Reserved
       </footer>
