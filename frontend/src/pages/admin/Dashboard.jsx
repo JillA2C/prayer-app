@@ -817,8 +817,23 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
         )}
         {publicView === 'date' && (
-          <input type="date" value={publicDateFilter} onChange={e => setPublicDateFilter(e.target.value)}
-            style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+          <select
+            value={publicDateFilter}
+            onChange={e => setPublicDateFilter(e.target.value)}
+            style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}}
+          >
+            <option value="">-- Select a date --</option>
+            {[...new Set(requests
+              .filter(r => r.status === 'approved' && r.church === publicChurch)
+              .map(r => new Date(r.date_added).toISOString().slice(0,10)))]
+              .sort((a,b) => b.localeCompare(a))
+              .map(date => (
+                <option key={date} value={date}>
+                  {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+                </option>
+              ))
+            }
+          </select>
         )}
 
         {publicView === 'status' ? (
