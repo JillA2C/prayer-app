@@ -15,6 +15,7 @@ const CHURCHES = [
 ];
 
 export default function Dashboard() {
+  
   const [church, setChurch] = useState(null);
   const [showGames, setShowGames] = useState(false);
   const [games, setGames] = useState([]);
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
   const [myStatuses, setMyStatuses] = useState([]);
+  const [myComments, setMyComments] = useState([]);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusChecked, setStatusChecked] = useState(false);
   const [showTextLayout, setShowTextLayout] = useState(false);
@@ -44,13 +46,14 @@ export default function Dashboard() {
   const load = async () => {
     const data = await adminGetRequests();
     const filtered = data.requests
-      .filter(r => r.church === church)
-      .filter(r => church === 'public' ? true : r.status !== 'pending')
-      .map(r => ({
-        ...r,
-        display_name: r.show_name ? r.full_name : 'Anonymous',
-        preview: r.prayer_message?.slice(0, 200)
-      }));
+  .filter(r => r.church === church)
+  .filter(r => church === 'public' ? true : r.status !== 'pending')
+  .map(r => ({
+    ...r,
+    display_name: r.show_name ? r.full_name : 'Anonymous',
+    prayer_message: r.prayer_message || '',
+    preview: r.prayer_message?.slice(0, 200)
+  }));
     setRequests(filtered);
   };
 
@@ -572,12 +575,17 @@ export default function Dashboard() {
           <p style={{color:'#6B7280', fontSize:'13px', marginBottom:'8px'}}>
             This is how visitors see the prayer wall.
           </p>
-          <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
-            <button onClick={() => setPublicView('all')} style={publicView === 'all' ? styles.tabActive : styles.tab}>📋 View All</button>
-            <button onClick={() => setPublicView('name')} style={publicView === 'name' ? styles.tabActive : styles.tab}>👤 By Name</button>
-            <button onClick={() => setPublicView('date')} style={publicView === 'date' ? styles.tabActive : styles.tab}>📅 By Date</button>
-            <button onClick={() => setPublicView('status')} style={publicView === 'status' ? styles.tabActive : styles.tab}>🔍 My Status</button>
+                  {church === 'public' && (
+          <div style={{background:'#1B3A6B', color:'#fff', borderRadius:'8px', padding:'10px 14px', marginBottom:'12px', fontSize:'13px', fontWeight:'600'}}>
+            Submit Prayer Request — visible to Public only
           </div>
+        )}
+        <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+          <button onClick={() => setPublicView('all')} style={publicView === 'all' ? styles.tabActive : styles.tab}>View All</button>
+          <button onClick={() => setPublicView('name')} style={publicView === 'name' ? styles.tabActive : styles.tab}>By Name</button>
+          <button onClick={() => setPublicView('date')} style={publicView === 'date' ? styles.tabActive : styles.tab}>By Date</button>
+          <button onClick={() => setPublicView('status')} style={publicView === 'status' ? styles.tabActive : styles.tab}>My Status</button>
+        </div>
 
           {publicView === 'name' && (
             <input placeholder="Type a name..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
@@ -596,7 +604,8 @@ export default function Dashboard() {
                 if (!publicSearch.trim()) return;
                 setStatusLoading(true);
                 const data = await checkMyStatus(publicSearch);
-                setMyStatuses(data.requests);
+                setMyStatuses(data.requests || []);
+                setMyComments(data.comments || []);
                 setStatusLoading(false);
                 setStatusChecked(true);
               }} style={styles.saveBtn}>🔍 Check Status</button>
@@ -629,7 +638,11 @@ export default function Dashboard() {
             </div>
           ) : (
             (() => {
-              let displayed = requests.filter(r => r.status === 'approved');
+              let displayed = requests.filter(r => r.status === 'approved').map(r => ({
+                ...r,
+                prayer_message: r.prayer_message || r.preview || '',
+                display_name: r.display_name || (r.show_name ? r.full_name : 'Anonymous'),
+              }));
               if (publicView === 'name' && publicSearch) {
                 displayed = displayed.filter(r => r.display_name.toLowerCase().includes(publicSearch.toLowerCase()));
               }

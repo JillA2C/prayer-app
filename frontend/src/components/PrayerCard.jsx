@@ -4,7 +4,14 @@ import { incrementPray } from '../api/prayerApi';
 
 export default function PrayerCard({ request }) {
   const [prayCount, setPrayCount] = useState(request.pray_count ?? 0);
-  const [hasPrayed, setHasPrayed] = useState(() => !!localStorage.getItem(`prayed_${request.id}`));
+  const [hasPrayed, setHasPrayed] = useState(() => {
+  const stored = localStorage.getItem(`prayed_${request.id}`);
+  if (!stored) return false;
+  // Auto-expire after 30 days
+  const savedTime = parseInt(stored);
+  if (isNaN(savedTime)) return true;
+  return Date.now() - savedTime < 30 * 24 * 60 * 60 * 1000;
+});
   const [showComments, setShowComments] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -14,7 +21,7 @@ export default function PrayerCard({ request }) {
       const data = await incrementPray(request.id);
       setPrayCount(data.pray_count);
       setHasPrayed(true);
-      localStorage.setItem(`prayed_${request.id}`, '1');
+      localStorage.setItem(`prayed_${request.id}`, Date.now().toString());
     } catch (e) { console.error(e); }
   };
 

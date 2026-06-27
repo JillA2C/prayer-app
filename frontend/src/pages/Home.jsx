@@ -52,7 +52,7 @@ export default function Home() {
     });
   }
 
-  /* 鈹€鈹€ Church selection screen 鈹€鈹€ */
+  /*  Church selection screen  */
   if (!church) {
     return (
       <div style={S.pageBg}>
@@ -101,9 +101,11 @@ export default function Home() {
           </button>
         </div>
 
-        <button onClick={() => setShowSubmit(true)} style={S.submitBtn}>
-          Submit a Prayer Request
-        </button>
+        {church === 'public' && (
+          <button onClick={() => setShowSubmit(true)} style={S.submitBtn}>
+            Submit a Prayer Request
+          </button>
+        )}
 
         {/* Submit modal */}
         {showSubmit && (
@@ -111,7 +113,7 @@ export default function Home() {
             <div style={S.modal}>
               <div style={S.modalHeader}>
                 <strong style={{ color: '#1B3A6B', fontSize: '15px' }}>Submit a Prayer Request</strong>
-                <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>鉁�</button>
+                <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>X</button>
               </div>
               {submitStatus === 'success' ? (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -199,7 +201,7 @@ export default function Home() {
             ))
         )}
 
-        <div style={S.footer}>漏 2026 Prayer Wall 鈥� All Rights Reserved</div>
+        <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
       </div>
     </div>
   );
