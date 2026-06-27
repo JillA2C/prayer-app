@@ -84,7 +84,7 @@ export default function Home() {
     );
   }
 
-  /* 鈹€鈹€ Prayer wall screen 鈹€鈹€ */
+  /* Prayer wall screen */
   return (
     <div style={S.pageBg}>
       <div style={S.container}>
@@ -176,12 +176,23 @@ export default function Home() {
           />
         )}
         {viewMode === 'date' && (
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={e => setDateFilter(e.target.value)}
-            style={S.filterInput}
-          />
+          <div style={{marginBottom:'12px'}}>
+            <select
+              value={dateFilter}
+              onChange={e => setDateFilter(e.target.value)}
+              style={S.filterInput}
+            >
+              <option value="">-- Select a date --</option>
+              {[...new Set(requests.map(r => new Date(r.date_added).toISOString().slice(0,10)))]
+                .sort((a,b) => b.localeCompare(a))
+                .map(date => (
+                  <option key={date} value={date}>
+                    {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+                  </option>
+                ))
+              }
+            </select>
+          </div>
         )}
 
         {loading ? (

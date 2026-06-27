@@ -299,14 +299,14 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             {!publicChurch ? '🌐 Public View' : `${CHURCHES.find(c=>c.id===publicChurch)?.icon} ${CHURCHES.find(c=>c.id===publicChurch)?.name}`}
           </strong>
         </div>
-        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-          {publicChurch && (
-            <button onClick={() => { setPublicMyStatus(!publicMyStatus); setPublicStatusName(''); setPublicStatusResults({ requests:[], comments:[] }); }} style={{...styles.backBtn, background: publicMyStatus ? '#1B3A6B' : 'none', color: publicMyStatus ? '#fff' : '#1B3A6B'}}>
-              🔍 My Status
-            </button>
-          )}
-          <button onClick={() => { setShowPublicView(false); setPublicChurch(null); setPublicMyStatus(false); }} style={styles.closeBtn}>✕ Close</button>
-        </div>
+            <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+      {!publicChurch && (
+        <button onClick={() => { setPublicMyStatus(!publicMyStatus); setPublicStatusName(''); setPublicStatusResults({ requests:[], comments:[] }); }} style={{...styles.backBtn, background: publicMyStatus ? '#1B3A6B' : 'none', color: publicMyStatus ? '#fff' : '#1B3A6B'}}>
+          My Status
+        </button>
+      )}
+      <button onClick={() => { setShowPublicView(false); setPublicChurch(null); setPublicMyStatus(false); }} style={styles.closeBtn}>✕ Close</button>
+    </div>
       </div>
 
       {/* Church selector */}
@@ -483,9 +483,8 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
       </button>
 
       <div style={{display:'flex', gap:'8px', margin:'16px 0'}}>
-        <button onClick={() => setAdminTab('manage')} style={adminTab === 'manage' ? styles.tabActive : styles.tab}>⚙️ Manage</button>
-        <button onClick={async () => { setAdminTab('public'); setPublicChurch(null); const data = await adminGetRequests(); const all = data.requests.map(r => ({...r, display_name: r.show_name ? r.full_name : 'Anonymous', prayer_message: r.prayer_message || ''})); setRequests(all); }} style={adminTab === 'public' ? styles.tabActive : styles.tab}>🌐 Public View</button>
-      </div>
+      <button onClick={() => setAdminTab('manage')} style={adminTab === 'manage' ? styles.tabActive : styles.tab}>⚙️ Manage</button>
+    </div>
 
       {/* MANAGE TAB */}
       {adminTab === 'manage' && (
