@@ -809,7 +809,6 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           <button onClick={() => setPublicView('all')} style={publicView === 'all' ? styles.tabActive : styles.tab}>View All</button>
           <button onClick={() => setPublicView('name')} style={publicView === 'name' ? styles.tabActive : styles.tab}>By Name</button>
           <button onClick={() => setPublicView('date')} style={publicView === 'date' ? styles.tabActive : styles.tab}>By Date</button>
-          <button onClick={() => setPublicView('status')} style={publicView === 'status' ? styles.tabActive : styles.tab}>My Status</button>
         </div>
 
         {publicView === 'name' && (
