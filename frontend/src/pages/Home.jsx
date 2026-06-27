@@ -52,7 +52,7 @@ export default function Home() {
     });
   }
 
-  /*  Church selection screen  */
+  /* 鈹€鈹€ Church selection screen 鈹€鈹€ */
   if (!church) {
     return (
       <div style={S.pageBg}>
@@ -78,13 +78,13 @@ export default function Home() {
               </button>
             ))}
           </div>
-          <div style={S.footer}>© 2026 Prayer Wall. All Rights Reserved</div>
+          <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
         </div>
       </div>
     );
   }
 
-  /*  Prayer wall screen */
+  /* 鈹€鈹€ Prayer wall screen 鈹€鈹€ */
   return (
     <div style={S.pageBg}>
       <div style={S.container}>
@@ -105,7 +105,56 @@ export default function Home() {
           Submit a Prayer Request
         </button>
 
-  
+        {/* Submit modal */}
+        {showSubmit && (
+          <div style={S.overlay}>
+            <div style={S.modal}>
+              <div style={S.modalHeader}>
+                <strong style={{ color: '#1B3A6B', fontSize: '15px' }}>Submit a Prayer Request</strong>
+                <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>鉁�</button>
+              </div>
+              {submitStatus === 'success' ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#16A34A', marginBottom: '6px' }}>Prayer submitted!</p>
+                  <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>It will appear after review. God bless you!</p>
+                  <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.navyBtn}>Close</button>
+                </div>
+              ) : (
+                <>
+                  <div style={S.fieldGroup}>
+                    <label style={S.fieldLabel}>Your Name</label>
+                    <input value={visitorName} readOnly style={{ ...S.fieldInput, background: '#F5F5F5', color: '#999' }} />
+                  </div>
+                  <div style={S.fieldGroup}>
+                    <label style={S.fieldLabel}>Your Prayer Request</label>
+                    <textarea
+                      rows={4}
+                      placeholder="Share your prayer request..."
+                      value={prayerMsg}
+                      onChange={e => setPrayerMsg(e.target.value)}
+                      style={{ ...S.fieldInput, resize: 'vertical' }}
+                    />
+                  </div>
+                  {submitStatus === 'error' && <p style={{ color: '#DC2626', fontSize: '12px', marginBottom: '8px' }}>Something went wrong. Try again.</p>}
+                  <button
+                    disabled={submitStatus === 'loading'}
+                    onClick={async () => {
+                      if (!prayerMsg.trim()) return;
+                      setSubmitStatus('loading');
+                      try {
+                        await submitPrayerRequest({ full_name: visitorName || 'Anonymous', prayer_message: prayerMsg, church: church || 'public' });
+                        setSubmitStatus('success');
+                      } catch { setSubmitStatus('error'); }
+                    }}
+                    style={S.navyBtn}
+                  >
+                    {submitStatus === 'loading' ? 'Submitting...' : 'Submit'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div style={S.tabs}>
