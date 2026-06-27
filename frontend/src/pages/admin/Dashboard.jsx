@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [rejectingCommentId, setRejectingCommentId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [publicView, setPublicView] = useState('all');
+  const [publicRequests, setPublicRequests] = useState([]);
   const [publicChurch, setPublicChurch] = useState(null);
   const [showPublicView, setShowPublicView] = useState(false);
 const [publicMyStatus, setPublicMyStatus] = useState(false);
@@ -220,11 +221,11 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
         setPublicChurch(null);
         setPublicView('all');
         const data = await adminGetRequests();
-        setRequests(data.requests.map(r => ({
-          ...r,
-          display_name: r.show_name ? r.full_name : 'Anonymous',
-          prayer_message: r.prayer_message || ''
-        })));
+          setPublicRequests(data.requests.map(r => ({
+            ...r,
+            display_name: r.show_name ? r.full_name : 'Anonymous',
+            prayer_message: r.prayer_message || ''
+          })));
       }} style={{...styles.statusBtn, marginTop:'10px', background:'#1B3A6B', color:'#fff'}}>
         🌐 Public View
       </button>
@@ -424,10 +425,10 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           )}
 
           {(() => {
-            let displayed = requests
-              .filter(r => r.status === 'approved')
-              .filter(r => r.church === publicChurch)
-              .map(r => ({
+            let displayed = publicRequests
+                      .filter(r => r.status === 'approved')
+                      .filter(r => r.church === publicChurch)
+                      .map(r => ({
                 ...r,
                 prayer_message: r.prayer_message || r.preview || '',
                 display_name: r.display_name || (r.show_name ? r.full_name : 'Anonymous'),
@@ -822,7 +823,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}}
           >
             <option value="">-- Select a date --</option>
-            {[...new Set(requests
+            {[...new Set(publicRequests
               .filter(r => r.status === 'approved' && r.church === publicChurch)
               .map(r => new Date(r.date_added).toISOString().slice(0,10)))]
               .sort((a,b) => b.localeCompare(a))
@@ -876,7 +877,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           </div>
         ) : (
           (() => {
-            let displayed = requests
+            let displayed = publicRequests
               .filter(r => r.status === 'approved')
               .filter(r => r.church === publicChurch)
               .map(r => ({
