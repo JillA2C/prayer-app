@@ -834,7 +834,6 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             }
           </select>
         )}
-
         {publicView === 'status' ? (
           <div>
             <input placeholder="Type a name to check status..." value={publicSearch} onChange={e => setPublicSearch(e.target.value)}
