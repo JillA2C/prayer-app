@@ -309,7 +309,67 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
       </div>
 
       {/* Church selector */}
-      {!publicChurch ? (
+{publicMyStatus ? (
+  <div>
+    <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+      <input
+        placeholder="Type your name to check status..."
+        value={publicStatusName}
+        onChange={e => setPublicStatusName(e.target.value)}
+        style={{flex:1, padding:'8px 12px', border:'1px solid #ccc', borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'}}
+      />
+      <button onClick={async () => {
+        if (!publicStatusName.trim()) return;
+        setPublicStatusLoading(true);
+        const data = await checkMyStatus(publicStatusName);
+        setPublicStatusResults({ requests: data.requests||[], comments: data.comments||[] });
+        setPublicStatusLoading(false);
+      }} style={styles.saveBtn}>Search</button>
+    </div>
+    {publicStatusLoading && <p style={{color:'#6B7280'}}>Searching...</p>}
+    {publicStatusResults.requests.length === 0 && publicStatusResults.comments.length === 0 && !publicStatusLoading && publicStatusName && (
+      <p style={{color:'#6B7280'}}>No results for <strong>{publicStatusName}</strong>.</p>
+    )}
+    {publicStatusResults.requests.length > 0 && (
+      <>
+        <h4 style={{color:'#1B3A6B', margin:'0 0 8px'}}>Prayer Requests</h4>
+        {publicStatusResults.requests.map((r, i) => (
+          <div key={i} style={{
+            padding:'12px', borderRadius:'8px', marginBottom:'8px',
+            background: r.status==='approved' ? '#F0FDF4' : r.status==='pending' ? '#FFFBEB' : '#FEF2F2',
+            border: r.status==='approved' ? '1px solid #BBF7D0' : r.status==='pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
+          }}>
+            <div style={{display:'flex', gap:'8px', marginBottom:'4px'}}>
+              <strong style={{fontSize:'14px'}}>{r.full_name}</strong>
+              <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
+            </div>
+            <p style={{margin:'0 0 6px', fontSize:'13px', color:'#444'}}>{r.prayer_message?.slice(0,80)}...</p>
+            {r.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Approved — visible on Prayer Wall</span>}
+            {r.status==='pending' && <span style={{fontSize:'12px', color:'#D97706', fontWeight:'600'}}>Pending review</span>}
+            {r.status==='hidden' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Not approved</span>{r.reject_reason && <span style={{fontSize:'12px', color:'#6B7280'}}> — {r.reject_reason}</span>}</div>}
+          </div>
+        ))}
+      </>
+    )}
+    {publicStatusResults.comments.length > 0 && (
+      <>
+        <h4 style={{color:'#1B3A6B', margin:'12px 0 8px'}}>Comments</h4>
+        {publicStatusResults.comments.map((c, i) => (
+          <div key={i} style={{
+            padding:'12px', borderRadius:'8px', marginBottom:'8px',
+            background: c.status==='approved' ? '#F0FDF4' : c.status==='deleted' ? '#FEF2F2' : '#FFFBEB',
+            border: c.status==='approved' ? '1px solid #BBF7D0' : c.status==='deleted' ? '1px solid #FECACA' : '1px solid #FDE68A'
+          }}>
+            <div style={{fontSize:'12px', color:'#6B7280', marginBottom:'4px'}}>On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}</div>
+            <p style={{margin:'0 0 6px', fontSize:'13px', color: c.status==='deleted' ? '#9CA3AF' : '#444', fontStyle: c.status==='deleted' ? 'italic' : 'normal'}}>{c.comment_text || '***'}</p>
+            {c.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Visible</span>}
+            {c.status==='deleted' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Deleted — will be permanently removed after 30 days</span>{c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}</div>}
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+) : !publicChurch ? (
         <div style={{display:'flex', flexDirection:'column', gap:'10px'}}>
           <p style={{color:'#6B7280', fontSize:'13px', margin:'0 0 8px'}}>Select a church to preview what visitors see.</p>
           {CHURCHES.map(c => (
@@ -324,81 +384,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           ))}
         </div>
 
-      /* My Status view */
-      ) : publicMyStatus ? (
-        <div>
-          <div style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
-            <input
-              placeholder="Type your name to check status..."
-              value={publicStatusName}
-              onChange={e => setPublicStatusName(e.target.value)}
-              onKeyDown={async e => {
-                if (e.key === 'Enter' && publicStatusName.trim()) {
-                  setPublicStatusLoading(true);
-                  const data = await checkMyStatus(publicStatusName);
-                  setPublicStatusResults({ requests: data.requests||[], comments: data.comments||[] });
-                  setPublicStatusLoading(false);
-                }
-              }}
-              style={{flex:1, padding:'8px 12px', border:'1px solid #ccc', borderRadius:'6px', fontSize:'14px', boxSizing:'border-box'}}
-            />
-            <button onClick={async () => {
-              if (!publicStatusName.trim()) return;
-              setPublicStatusLoading(true);
-              const data = await checkMyStatus(publicStatusName);
-              setPublicStatusResults({ requests: data.requests||[], comments: data.comments||[] });
-              setPublicStatusLoading(false);
-            }} style={styles.saveBtn}>Search</button>
-          </div>
-
-          {publicStatusLoading && <p style={{color:'#6B7280'}}>Searching...</p>}
-
-          {publicStatusResults.requests.length === 0 && publicStatusResults.comments.length === 0 && !publicStatusLoading && publicStatusName && (
-            <p style={{color:'#6B7280'}}>No results found for <strong>{publicStatusName}</strong>.</p>
-          )}
-
-          {publicStatusResults.requests.length > 0 && (
-            <>
-              <h4 style={{color:'#1B3A6B', margin:'0 0 8px'}}>Prayer Requests</h4>
-              {publicStatusResults.requests.map((r, i) => (
-                <div key={i} style={{
-                  padding:'12px', borderRadius:'8px', marginBottom:'8px',
-                  background: r.status==='approved' ? '#F0FDF4' : r.status==='pending' ? '#FFFBEB' : '#FEF2F2',
-                  border: r.status==='approved' ? '1px solid #BBF7D0' : r.status==='pending' ? '1px solid #FDE68A' : '1px solid #FECACA'
-                }}>
-                  <div style={{display:'flex', gap:'8px', marginBottom:'4px'}}>
-                    <strong style={{fontSize:'14px'}}>{r.full_name}</strong>
-                    <span style={{fontSize:'12px', color:'#6B7280'}}>{new Date(r.date_added).toLocaleDateString()}</span>
-                  </div>
-                  <p style={{margin:'0 0 6px', fontSize:'13px', color:'#444'}}>{r.prayer_message?.slice(0,80)}...</p>
-                  {r.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Approved — visible on Prayer Wall</span>}
-                  {r.status==='pending' && <span style={{fontSize:'12px', color:'#D97706', fontWeight:'600'}}>Pending review</span>}
-                  {r.status==='hidden' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Not approved</span>{r.reject_reason && <span style={{fontSize:'12px', color:'#6B7280'}}> — {r.reject_reason}</span>}</div>}
-                </div>
-              ))}
-            </>
-          )}
-
-          {publicStatusResults.comments.length > 0 && (
-            <>
-              <h4 style={{color:'#1B3A6B', margin:'12px 0 8px'}}>Comments</h4>
-              {publicStatusResults.comments.map((c, i) => (
-                <div key={i} style={{
-                  padding:'12px', borderRadius:'8px', marginBottom:'8px',
-                  background: c.status==='approved' ? '#F0FDF4' : c.status==='deleted' ? '#FEF2F2' : '#FFFBEB',
-                  border: c.status==='approved' ? '1px solid #BBF7D0' : c.status==='deleted' ? '1px solid #FECACA' : '1px solid #FDE68A'
-                }}>
-                  <div style={{fontSize:'12px', color:'#6B7280', marginBottom:'4px'}}>On: <strong>{c.prayer_title}</strong> — {new Date(c.submitted_at).toLocaleDateString()}</div>
-                  <p style={{margin:'0 0 6px', fontSize:'13px', color: c.status==='deleted' ? '#9CA3AF' : '#444', fontStyle: c.status==='deleted' ? 'italic' : 'normal'}}>{c.comment_text || '***'}</p>
-                  {c.status==='approved' && <span style={{fontSize:'12px', color:'#16A34A', fontWeight:'600'}}>Visible</span>}
-                  {c.status==='deleted' && <div><span style={{fontSize:'12px', color:'#DC2626', fontWeight:'600'}}>Deleted — will be permanently removed after 30 days</span>{c.deleted_reason && <p style={{margin:'4px 0 0', fontSize:'12px', color:'#6B7280'}}>Reason: {c.deleted_reason}</p>}</div>}
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-      /* Prayer wall view */
+     
       ) : (
         <>
           {publicChurch === 'public' && (
@@ -418,8 +404,23 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
               style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
           )}
           {publicView === 'date' && (
-            <input type="date" value={publicDateFilter} onChange={e => setPublicDateFilter(e.target.value)}
-              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
+            <select
+              value={publicDateFilter}
+              onChange={e => setPublicDateFilter(e.target.value)}
+              style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}}
+            >
+              <option value="">-- Select a date --</option>
+              {[...new Set(publicRequests
+                .filter(r => r.status === 'approved' && r.church === publicChurch)
+                .map(r => new Date(r.date_added).toISOString().slice(0,10)))]
+                .sort((a,b) => b.localeCompare(a))
+                .map(date => (
+                  <option key={date} value={date}>
+                    {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+                  </option>
+                ))
+              }
+            </select>
           )}
 
           {(() => {
