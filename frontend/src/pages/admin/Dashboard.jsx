@@ -301,11 +301,9 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           </strong>
         </div>
             <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
-      {!publicChurch && (
-        <button onClick={() => { setPublicMyStatus(!publicMyStatus); setPublicStatusName(''); setPublicStatusResults({ requests:[], comments:[] }); }} style={{...styles.backBtn, background: publicMyStatus ? '#1B3A6B' : 'none', color: publicMyStatus ? '#fff' : '#1B3A6B'}}>
-          My Status
-        </button>
-      )}
+      <button onClick={() => { setPublicMyStatus(!publicMyStatus); setPublicStatusName(''); setPublicStatusResults({ requests:[], comments:[] }); }} style={{...styles.backBtn, background: publicMyStatus ? '#1B3A6B' : 'none', color: publicMyStatus ? '#fff' : '#1B3A6B'}}>
+        My Status
+      </button>
       <button onClick={() => { setShowPublicView(false); setPublicChurch(null); setPublicMyStatus(false); }} style={styles.closeBtn}>✕ Close</button>
     </div>
       </div>
