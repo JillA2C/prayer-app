@@ -48,6 +48,8 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusChecked, setStatusChecked] = useState(false);
   const [showTextLayout, setShowTextLayout] = useState(false);
+  const [calYear, setCalYear] = useState(new Date().getFullYear());
+  const [calMonth, setCalMonth] = useState(new Date().getMonth()); // 0-indexed
   const navigate = useNavigate();
 
   const load = async () => {
@@ -492,14 +494,128 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
           {/* Date selection */}
           {!selectedDate ? (
             <div>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px'}}>
-                <h3 style={{color:'#1B3A6B', margin:0}}>📅 Select a Date</h3>
-                <input
-                  type="date"
-                  onChange={e => { if(e.target.value) { setSelectedDate(e.target.value); resetForm(); }}}
-                  style={{padding:'6px', border:'1px solid #ccc', borderRadius:'6px', fontSize:'13px'}}
-                />
-              </div>
+              <h3 style={{color:'#1B3A6B', margin:'0 0 12px'}}>Select a Date</h3>
+
+              {/* Custom Calendar */}
+              {(() => {
+                const existingDates = {};
+                requests.forEach(r => {
+                  const dk = new Date(r.date_added).toISOString().slice(0,10);
+                  existingDates[dk] = (existingDates[dk] || 0) + 1;
+                });
+
+                const allYears = [...new Set(Object.keys(existingDates).map(d => parseInt(d.slice(0,4))))].sort((a,b) => a-b);
+                const today = new Date();
+                const curYear = calYear;
+                const curMonth = calMonth;
+
+                // Days in selected month
+                const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+                const firstDayOfWeek = new Date(curYear, curMonth, 1).getDay(); // 0=Sun
+                const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+                return (
+                  <div style={{border:'2px solid #1B3A6B', borderRadius:'10px', overflow:'hidden', maxWidth:'520px', marginBottom:'20px', fontFamily:'sans-serif'}}>
+                    
+                    {/* Year row */}
+                    <div style={{display:'flex', alignItems:'center', background:'#fff', borderBottom:'1px solid #D1D5DB', padding:'8px 10px', gap:'6px'}}>
+                      <button onClick={() => setCalYear(y => y - 1)}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'28px', height:'28px', cursor:'pointer', color:'#1B3A6B', fontWeight:'700', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>‹</button>
+                      <div style={{display:'flex', gap:'6px', flex:1, flexWrap:'wrap'}}>
+                        {(allYears.length > 0 ? allYears : [today.getFullYear()]).map(yr => (
+                          <button key={yr} onClick={() => setCalYear(yr)}
+                            style={{padding:'4px 12px', borderRadius:'20px', border: yr === curYear ? '2px solid #1B3A6B' : '1px solid #D1D5DB',
+                              background: yr === curYear ? '#1B3A6B' : '#F9FAFB', color: yr === curYear ? '#fff' : '#374151',
+                              fontWeight:'600', fontSize:'13px', cursor:'pointer'}}>
+                            {yr}
+                          </button>
+                        ))}
+                        {/* Also show current year if not in existing dates */}
+                        {!allYears.includes(today.getFullYear()) && (
+                          <button onClick={() => setCalYear(today.getFullYear())}
+                            style={{padding:'4px 12px', borderRadius:'20px', border: today.getFullYear() === curYear ? '2px solid #1B3A6B' : '1px solid #D1D5DB',
+                              background: today.getFullYear() === curYear ? '#1B3A6B' : '#F9FAFB', color: today.getFullYear() === curYear ? '#fff' : '#374151',
+                              fontWeight:'600', fontSize:'13px', cursor:'pointer'}}>
+                            {today.getFullYear()}
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={() => setCalYear(y => y + 1)}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'28px', height:'28px', cursor:'pointer', color:'#1B3A6B', fontWeight:'700', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>›</button>
+                    </div>
+
+                    {/* Body: months column + days grid */}
+                    <div style={{display:'flex'}}>
+
+                      {/* Month column */}
+                      <div style={{display:'flex', flexDirection:'column', borderRight:'1px solid #D1D5DB', background:'#F9FAFB', minWidth:'52px'}}>
+                        <button onClick={() => setCalMonth(m => m > 0 ? m - 1 : 11)}
+                          style={{background:'none', border:'none', padding:'4px', cursor:'pointer', color:'#1B3A6B', fontWeight:'700', fontSize:'14px'}}>▲</button>
+                        {MONTHS.map((m, idx) => {
+                          const hasData = Object.keys(existingDates).some(d => d.startsWith(`${curYear}-${String(idx+1).padStart(2,'0')}`));
+                          return (
+                            <button key={m} onClick={() => setCalMonth(idx)}
+                              style={{padding:'5px 6px', border:'none', borderBottom:'1px solid #E5E7EB', cursor:'pointer', fontSize:'11px', fontWeight: idx === curMonth ? '700' : '500',
+                                background: idx === curMonth ? '#1B3A6B' : 'transparent',
+                                color: idx === curMonth ? '#fff' : hasData ? '#1B3A6B' : '#9CA3AF',
+                                textAlign:'center', position:'relative'}}>
+                              {m}
+                              {hasData && idx !== curMonth && <span style={{display:'block', width:'5px', height:'5px', borderRadius:'50%', background:'#C9A84C', margin:'1px auto 0'}}></span>}
+                            </button>
+                          );
+                        })}
+                        <button onClick={() => setCalMonth(m => m < 11 ? m + 1 : 0)}
+                          style={{background:'none', border:'none', padding:'4px', cursor:'pointer', color:'#1B3A6B', fontWeight:'700', fontSize:'14px'}}>▼</button>
+                      </div>
+
+                      {/* Days grid */}
+                      <div style={{flex:1, padding:'10px'}}>
+                        <div style={{textAlign:'center', fontWeight:'700', color:'#1B3A6B', marginBottom:'8px', fontSize:'14px'}}>
+                          {MONTH_FULL[curMonth]} {curYear}
+                        </div>
+                        {/* Day headers */}
+                        <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px', marginBottom:'4px'}}>
+                          {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                            <div key={d} style={{textAlign:'center', fontSize:'11px', color:'#6B7280', fontWeight:'600', padding:'2px 0'}}>{d}</div>
+                          ))}
+                        </div>
+                        {/* Day cells */}
+                        <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:'2px'}}>
+                          {Array.from({length: firstDayOfWeek}).map((_,i) => <div key={`e${i}`} />)}
+                          {Array.from({length: daysInMonth}).map((_,i) => {
+                            const day = i + 1;
+                            const dateStr = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            const count = existingDates[dateStr] || 0;
+                            const isToday = dateStr === today.toISOString().slice(0,10);
+                            return (
+                              <button key={day} onClick={() => { setSelectedDate(dateStr); resetForm(); }}
+                                title={count > 0 ? `${count} entr${count===1?'y':'ies'}` : 'No entries — click to add'}
+                                style={{
+                                  padding:'0', height:'34px', borderRadius:'6px', border:'none', cursor:'pointer', fontSize:'13px', fontWeight: count > 0 ? '700' : '400',
+                                  background: count > 0 ? '#1B3A6B' : isToday ? '#EFF6FF' : '#F3F4F6',
+                                  color: count > 0 ? '#fff' : isToday ? '#1B3A6B' : '#374151',
+                                  outline: isToday ? '2px solid #C9A84C' : 'none',
+                                  position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'1px'
+                                }}>
+                                {day}
+                                {count > 0 && <span style={{fontSize:'9px', fontWeight:'400', opacity:0.85}}>{count}</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div style={{marginTop:'10px', display:'flex', gap:'12px', fontSize:'11px', color:'#6B7280'}}>
+                          <span><span style={{display:'inline-block', width:'10px', height:'10px', borderRadius:'2px', background:'#1B3A6B', marginRight:'4px', verticalAlign:'middle'}}></span>Has entries</span>
+                          <span><span style={{display:'inline-block', width:'10px', height:'10px', borderRadius:'2px', background:'#EFF6FF', border:'2px solid #C9A84C', marginRight:'4px', verticalAlign:'middle'}}></span>Today</span>
+                          <span>Click any day to open or add entries</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Existing date pills below calendar */}
               {(() => {
                 const groups = {};
                 requests.forEach(r => {
@@ -509,13 +625,18 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
                 });
                 const sortedDates = Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0]));
                 return sortedDates.length === 0
-                  ? <p style={{color:'#6B7280'}}>No entries yet. Pick a date above to start adding.</p>
-                  : sortedDates.map(([dateKey, count]) => (
-                    <button key={dateKey} onClick={() => { setSelectedDate(dateKey); resetForm(); }} style={styles.datePill}>
-                      📅 {new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
-                      <span style={styles.datePillCount}>{count} {count === 1 ? 'entry' : 'entries'}</span>
-                    </button>
-                  ));
+                  ? <p style={{color:'#6B7280'}}>No entries yet. Click any day on the calendar to start adding.</p>
+                  : (
+                    <>
+                      <p style={{color:'#6B7280', fontSize:'13px', margin:'0 0 8px'}}>Or click a date below:</p>
+                      {sortedDates.map(([dateKey, count]) => (
+                        <button key={dateKey} onClick={() => { setSelectedDate(dateKey); resetForm(); }} style={styles.datePill}>
+                          {new Date(dateKey + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+                          <span style={styles.datePillCount}>{count} {count === 1 ? 'entry' : 'entries'}</span>
+                        </button>
+                      ))}
+                    </>
+                  );
               })()}
             </div>
           ) : (
