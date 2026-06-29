@@ -247,18 +247,61 @@ export default function Home() {
               <input placeholder="Type a name to search..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} style={S.filterInput} />
             )}
             {viewMode === 'date' && (
-              <div style={{marginBottom:'12px'}}>
-                <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={S.filterInput}>
-                  <option value="">-- Select a date --</option>
-                  {[...new Set(requests.map(r => new Date(r.date_added).toISOString().slice(0,10)))]
-                    .sort((a,b) => b.localeCompare(a))
-                    .map(date => (
-                      <option key={date} value={date}>
-                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
-                      </option>
-                    ))
-                  }
-                </select>
+              <div style={{marginBottom:'16px'}}>
+                {!dateFilter ? (
+                  <div style={{overflowX:'auto'}}>
+                    <table style={{width:'100%', borderCollapse:'collapse', fontSize:'13px'}}>
+                      <thead>
+                        <tr>
+                          <td colSpan="99" style={{background:'#1B3A6B', color:'#fff', padding:'10px 14px', fontWeight:'700', fontSize:'14px', borderRadius:'8px 8px 0 0'}}>
+                            Calendar of {churchInfo?.name} Prayer Request
+                          </td>
+                        </tr>
+                        <tr style={{background:'#F0F4F9'}}>
+                          <th style={{padding:'8px 12px', textAlign:'left', border:'1px solid #E2E8F0', color:'#1B3A6B', fontWeight:'700', whiteSpace:'nowrap'}}>Year</th>
+                          <th style={{padding:'8px 12px', border:'1px solid #E2E8F0', color:'#6B7280', fontWeight:'600'}}>Dates</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const byYear = {};
+                          requests.forEach(r => {
+                            const d = new Date(r.date_added);
+                            const yr = d.getFullYear();
+                            const dateStr = r.date_added.slice ? new Date(r.date_added).toISOString().slice(0,10) : '';
+                            if (!byYear[yr]) byYear[yr] = {};
+                            byYear[yr][dateStr] = (byYear[yr][dateStr] || 0) + 1;
+                          });
+                          return Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([yr, dates]) => (
+                            <tr key={yr} style={{borderBottom:'1px solid #E2E8F0'}}>
+                              <td style={{padding:'10px 12px', fontWeight:'700', color:'#1B3A6B', border:'1px solid #E2E8F0', background:'#F8FAFC', whiteSpace:'nowrap'}}>{yr}</td>
+                              <td style={{padding:'6px 8px', border:'1px solid #E2E8F0'}}>
+                                <div style={{display:'flex', flexWrap:'wrap', gap:'6px'}}>
+                                  {Object.entries(dates).sort((a,b) => a[0].localeCompare(b[0])).map(([dateStr, count]) => (
+                                    <button key={dateStr} onClick={() => setDateFilter(dateStr)}
+                                      style={{background:'#1B3A6B', color:'#fff', border:'none', borderRadius:'6px', padding:'5px 10px', cursor:'pointer', fontSize:'12px', fontWeight:'600', fontFamily:'inherit'}}>
+                                      {new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short', day:'numeric'})}
+                                      <span style={{marginLeft:'5px', background:'#C9A84C', borderRadius:'10px', padding:'1px 6px', fontSize:'11px'}}>{count}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
+                    <button onClick={() => setDateFilter('')} style={{background:'none', border:'1.5px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px', fontFamily:'inherit'}}>
+                      Back to Calendar
+                    </button>
+                    <span style={{fontWeight:'700', color:'#1B3A6B', fontSize:'14px'}}>
+                      {new Date(dateFilter+'T00:00:00').toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
