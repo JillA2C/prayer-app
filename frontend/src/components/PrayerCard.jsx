@@ -26,7 +26,7 @@ export default function PrayerCard({ request }) {
   };
 
   const msg = request.prayer_message || request.preview || request.message || '';
-const preview = msg.length > 160 ? msg.slice(0, 160) + '...' : msg;
+  const preview = msg.length > 160 ? msg.slice(0, 160) + '...' : msg;
 
   return (
     <div style={S.card}>
@@ -57,51 +57,55 @@ const preview = msg.length > 160 ? msg.slice(0, 160) + '...' : msg;
 const S = {
   card: {
     background: '#fff',
-    border: '1px solid #E2E8F0',
-    borderRadius: '12px',
-    padding: '16px 18px',
+    border: '1px solid #E8EDF4',
+    borderRadius: '14px',
+    padding: '18px 20px',
     marginBottom: '12px',
-    boxShadow: '0 2px 8px rgba(27,58,107,0.06)',
+    boxShadow: '0 2px 12px rgba(27,58,107,0.07)',
     fontFamily: "'Segoe UI', Arial, sans-serif",
+    borderLeft: '4px solid #C9A84C',
   },
-  cardTop: { marginBottom: '12px' },
-  meta: { fontSize: '12px', color: '#999', marginBottom: '6px' },
-  body: { fontSize: '14px', color: '#444', lineHeight: '1.6', margin: 0 },
+  cardTop: { marginBottom: '14px' },
+  meta: { fontSize: '12px', color: '#9CA3AF', marginBottom: '6px', fontWeight: '500' },
+  body: { fontSize: '14px', color: '#374151', lineHeight: '1.65', margin: 0 },
   readMore: {
     background: 'none', border: 'none', color: '#1B3A6B',
     cursor: 'pointer', textDecoration: 'underline',
-    fontSize: '13px', padding: '0 0 0 4px', fontFamily: 'inherit',
+    fontSize: '13px', padding: '0 0 0 4px', fontFamily: 'inherit', fontWeight: '600',
   },
   actions: { display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' },
   prayBtn: {
-    border: '1.5px solid #C9A84C',
+    border: '2px solid #C9A84C',
     background: '#fff',
     color: '#C9A84C',
-    padding: '8px 14px',
+    padding: '8px 16px',
     borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: '700',
     fontFamily: 'inherit',
+    boxShadow: '0 2px 6px rgba(201,168,76,0.2)',
   },
   prayedBtn: {
-    border: '1.5px solid #C9A84C',
-    background: '#C9A84C',
+    border: '2px solid #C9A84C',
+    background: 'linear-gradient(135deg, #C9A84C 0%, #e0bf6a 100%)',
     color: '#fff',
-    padding: '8px 14px',
+    padding: '8px 16px',
     borderRadius: '8px',
     cursor: 'default',
     fontSize: '13px',
     fontWeight: '700',
     fontFamily: 'inherit',
+    boxShadow: '0 2px 8px rgba(201,168,76,0.4)',
   },
   commentBtn: {
     background: 'none',
     border: 'none',
-    color: '#777',
+    color: '#9CA3AF',
     cursor: 'pointer',
     fontSize: '13px',
     padding: '4px 0',
     fontFamily: 'inherit',
+    fontWeight: '500',
   },
 };
