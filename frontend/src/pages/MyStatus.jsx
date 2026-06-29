@@ -1,28 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkMyStatus } from '../api/prayerApi';
 
 const CHURCH_NAMES = { st_michael: 'AMC Paudpod', holy_trinity: 'AMC Carael', public: 'Public Prayers' };
 
 export default function MyStatus() {
-  const [nameInput, setNameInput] = useState('');
   const [activeTab, setActiveTab] = useState('comments');
   const [prayers, setPrayers] = useState([]);
   const [comments, setComments] = useState([]);
-  const [searched, setSearched] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const visitorName = localStorage.getItem('visitorName') || '';
 
-  const handleSearch = async () => {
-    if (!nameInput.trim()) return;
-    setLoading(true); setSearched(false);
-    try {
-      const data = await checkMyStatus(nameInput);
-      setPrayers(data.requests || []);
-      setComments(data.comments || []);
-    } catch { setPrayers([]); setComments([]); }
-    setLoading(false); setSearched(true);
-  };
+  useEffect(() => {
+    if (!visitorName) { setLoading(false); return; }
+    (async () => {
+      try {
+        const data = await checkMyStatus(visitorName);
+        setPrayers(data.requests || []);
+        setComments(data.comments || []);
+      } catch { setPrayers([]); setComments([]); }
+      setLoading(false);
+    })();
+  }, []);
 
   const commentsByChurch = {};
   comments.forEach(c => {
@@ -36,25 +36,20 @@ export default function MyStatus() {
       <div style={S.container}>
         <nav style={S.nav}>
           <button onClick={() => navigate('/')} style={S.backBtn}>Back</button>
-          <h1 style={S.navTitle}>Check My Status</h1>
+          <h1 style={S.navTitle}>My Status</h1>
           <div style={{ width: '60px' }} />
         </nav>
 
-        <div style={S.searchRow}>
-          <input
-            placeholder="Type your name here..."
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            style={S.searchInput}
-          />
-          <button onClick={handleSearch} disabled={loading} style={S.searchBtn}>
-            {loading ? '...' : 'Search'}
-          </button>
-        </div>
-
-        {searched && (
+        {!visitorName ? (
+          <p style={S.empty}>No name found. Please go through the entry gate first.</p>
+        ) : loading ? (
+          <p style={S.empty}>Loading your status...</p>
+        ) : (
           <>
+            <p style={{color:'#1B3A6B', fontWeight:'600', fontSize:'14px', marginBottom:'16px'}}>
+              Showing results for: <strong>{visitorName}</strong>
+            </p>
+
             <div style={S.tabs}>
               <button onClick={() => setActiveTab('comments')} style={activeTab === 'comments' ? S.tabActive : S.tab}>
                 Comments
@@ -66,7 +61,7 @@ export default function MyStatus() {
 
             {activeTab === 'comments' && (
               comments.length === 0
-                ? <p style={S.empty}>No comments found for "{nameInput}".</p>
+                ? <p style={S.empty}>No comments yet for "{visitorName}".</p>
                 : Object.entries(commentsByChurch).map(([church, list]) => (
                   <div key={church} style={{ marginBottom: '20px' }}>
                     <div style={S.churchHeader}>{CHURCH_NAMES[church] || church}</div>
@@ -92,7 +87,7 @@ export default function MyStatus() {
 
             {activeTab === 'prayers' && (
               prayers.length === 0
-                ? <p style={S.empty}>No prayer requests found for "{nameInput}".</p>
+                ? <p style={S.empty}>No prayer requests yet for "{visitorName}".</p>
                 : prayers.map((r, i) => (
                   <div key={i} style={r.status === 'hidden' ? S.cardDeleted : r.status === 'approved' ? S.cardApproved : S.cardPending}>
                     <div style={S.cardMeta}>{new Date(r.date_added).toLocaleDateString()}</div>
@@ -133,17 +128,6 @@ const S = {
     background: 'transparent', border: `1.5px solid ${navy}`, borderRadius: '8px',
     padding: '7px 14px', color: navy, cursor: 'pointer', fontSize: '13px',
     fontWeight: '600', fontFamily: 'inherit',
-  },
-  searchRow: { display: 'flex', gap: '10px', marginBottom: '20px' },
-  searchInput: {
-    flex: 1, padding: '11px 14px', border: '1.5px solid #D1D5DB',
-    borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit',
-    outline: 'none', background: '#fff', boxSizing: 'border-box',
-  },
-  searchBtn: {
-    background: navy, color: '#fff', border: 'none', borderRadius: '8px',
-    padding: '11px 20px', cursor: 'pointer', fontSize: '14px',
-    fontWeight: '700', fontFamily: 'inherit', whiteSpace: 'nowrap',
   },
   tabs: { display: 'flex', gap: '8px', marginBottom: '16px' },
   tab: {

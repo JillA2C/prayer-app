@@ -20,6 +20,10 @@ export default function Home() {
   const [prayerMsg, setPrayerMsg] = useState('');
   const [submitStatus, setSubmitStatus] = useState('idle');
   const visitorName = localStorage.getItem('visitorName') || '';
+  const [useAnon, setUseAnon] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showMenuSubmit, setShowMenuSubmit] = useState(false);
+  const [menuSubmitChurch, setMenuSubmitChurch] = useState(null);
   const navigate = useNavigate();
 
   const load = async (id) => {
@@ -51,168 +55,233 @@ export default function Home() {
       grouped[key].push(r);
     });
   }
+ return (
+    <div style={S.pageBg}>
 
-  /*  Church selection screen  */
-  if (!church) {
-    return (
-      <div style={S.pageBg}>
-        <div style={S.container}>
-          <nav style={S.nav}>
-            <span style={S.navBrand}>Prayer Wall</span>
-            <button onClick={() => navigate('/my-status')} style={S.navBtn}>My Status</button>
-          </nav>
-          <div style={S.hero}>
-            <h1 style={S.heroTitle}>Prayer Wall</h1>
-            <p style={S.heroSub}>We are stronger together in prayer.</p>
-            <p style={S.heroDesc}>Choose a church to view and pray for their community.</p>
-          </div>
-          <div style={S.churchList}>
-            {CHURCHES.map(c => (
-              <button key={c.id} onClick={() => setChurch(c.id)} style={S.churchCard}>
-                <span style={S.churchIcon}>{c.icon}</span>
-                <div style={S.churchMeta}>
-                  <div style={S.churchName}>{c.name}</div>
-                  <div style={S.churchTagline}>{c.tagline}</div>
-                </div>
-                <span style={S.chevron}>&#8250;</span>
+      {/* Hamburger drawer */}
+      {showMenu && (
+        <div onClick={() => setShowMenu(false)} style={{position:'fixed',top:0,left:0,width:'100%',height:'100%',background:'rgba(0,0,0,0.45)',zIndex:300}}>
+          <div onClick={e => e.stopPropagation()} style={{position:'fixed',top:0,left:0,width:'220px',height:'100%',background:'#1B3A6B',display:'flex',flexDirection:'column'}}>
+            <div style={{padding:'20px',borderBottom:'1px solid rgba(255,255,255,0.15)',marginBottom:'4px'}}>
+              <span style={{color:'#C9A84C',fontWeight:'800',fontSize:'16px'}}>Prayer Wall</span>
+            </div>
+            {[
+              {label:'Pray', action:() => { setChurch(null); setShowMenu(false); }},
+              {label:'Submit Prayer', action:() => { setShowMenuSubmit(true); setMenuSubmitChurch('public'); setShowMenu(false); }},
+              {label:'My Status', action:() => { navigate('/my-status'); setShowMenu(false); }},
+            ].map(item => (
+              <button key={item.label} onClick={item.action} style={{background:'none',border:'none',borderBottom:'1px solid rgba(255,255,255,0.08)',color:'#fff',textAlign:'left',padding:'16px 20px',fontSize:'15px',cursor:'pointer',fontFamily:'inherit'}}>
+                {item.label}
               </button>
             ))}
           </div>
-          <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  /* Prayer wall screen */
-  return (
-    <div style={S.pageBg}>
-      <div style={S.container}>
-        <nav style={S.nav}>
-          <span style={S.navBrand}>Prayer Wall</span>
-          <button onClick={() => navigate('/my-status')} style={S.navBtn}>My Status</button>
-        </nav>
-
-        <div style={S.hero}>
-          <h1 style={S.heroTitle}>Prayer Wall</h1>
-          <p style={S.heroSub}>We are stronger together in prayer.</p>
-          <button onClick={() => setChurch(null)} style={S.changeBtn}>
-            {churchInfo?.icon} {churchInfo?.name} (change)
-          </button>
-        </div>
-
-        {church === 'public' && (
-          <button onClick={() => setShowSubmit(true)} style={S.submitBtn}>
-            Submit a Prayer Request
-          </button>
-        )}
-
-        {/* Submit modal */}
-        {showSubmit && (
-          <div style={S.overlay}>
-            <div style={S.modal}>
-              <div style={S.modalHeader}>
-                <strong style={{ color: '#1B3A6B', fontSize: '15px' }}>Submit a Prayer Request</strong>
-                <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>X</button>
-              </div>
-              {submitStatus === 'success' ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <p style={{ fontSize: '15px', fontWeight: '700', color: '#16A34A', marginBottom: '6px' }}>Prayer submitted!</p>
-                  <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>It will appear after review. God bless you!</p>
-                  <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.navyBtn}>Close</button>
+      {/* Submit Prayer from menu */}
+      {showMenuSubmit && (
+        <div style={{position:'fixed',top:0,left:0,width:'100%',height:'100%',background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300,padding:'16px',boxSizing:'border-box'}}>
+          <div style={{background:'#fff',borderRadius:'16px',padding:'24px',width:'100%',maxWidth:'420px',boxShadow:'0 16px 48px rgba(0,0,0,0.2)'}}>
+            {!menuSubmitChurch ? (
+              <>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+                  <strong style={{color:'#1B3A6B',fontSize:'15px'}}>Submit a Prayer Request</strong>
+                  <button onClick={() => setShowMenuSubmit(false)} style={S.closeBtn}>X</button>
                 </div>
-              ) : (
-                <>
-                  <div style={S.fieldGroup}>
-                    <label style={S.fieldLabel}>Your Name</label>
-                    <input value={visitorName} readOnly style={{ ...S.fieldInput, background: '#F5F5F5', color: '#999' }} />
-                  </div>
-                  <div style={S.fieldGroup}>
-                    <label style={S.fieldLabel}>Your Prayer Request</label>
-                    <textarea
-                      rows={4}
-                      placeholder="Share your prayer request..."
-                      value={prayerMsg}
-                      onChange={e => setPrayerMsg(e.target.value)}
-                      style={{ ...S.fieldInput, resize: 'vertical' }}
-                    />
-                  </div>
-                  {submitStatus === 'error' && <p style={{ color: '#DC2626', fontSize: '12px', marginBottom: '8px' }}>Something went wrong. Try again.</p>}
-                  <button
-                    disabled={submitStatus === 'loading'}
-                    onClick={async () => {
-                      if (!prayerMsg.trim()) return;
-                      setSubmitStatus('loading');
-                      try {
-                        await submitPrayerRequest({ full_name: visitorName || 'Anonymous', prayer_message: prayerMsg, church: church || 'public' });
-                        setSubmitStatus('success');
-                      } catch { setSubmitStatus('error'); }
-                    }}
-                    style={S.navyBtn}
-                  >
-                    {submitStatus === 'loading' ? 'Submitting...' : 'Submit'}
+                <p style={{color:'#6B7280',fontSize:'13px',margin:'0 0 12px'}}>Choose a church:</p>
+                {CHURCHES.map(c => (
+                  <button key={c.id} onClick={() => setMenuSubmitChurch(c.id)}
+                    style={{display:'block',width:'100%',textAlign:'left',background:'#F8FAFC',border:'1.5px solid #E2E8F0',borderRadius:'10px',padding:'13px 16px',marginBottom:'8px',cursor:'pointer',fontSize:'14px',fontWeight:'600',color:'#1B3A6B',fontFamily:'inherit'}}>
+                    {c.name}
                   </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={S.tabs}>
-          {[['all', 'View All'], ['name', 'By Name'], ['date', 'By Date']].map(([mode, label]) => (
-            <button key={mode} onClick={() => setViewMode(mode)} style={viewMode === mode ? S.tabActive : S.tab}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {viewMode === 'name' && (
-          <input
-            placeholder="Type a name to search..."
-            value={nameFilter}
-            onChange={e => setNameFilter(e.target.value)}
-            style={S.filterInput}
-          />
-        )}
-        {viewMode === 'date' && (
-          <div style={{marginBottom:'12px'}}>
-            <select
-              value={dateFilter}
-              onChange={e => setDateFilter(e.target.value)}
-              style={S.filterInput}
-            >
-              <option value="">-- Select a date --</option>
-              {[...new Set(requests.map(r => new Date(r.date_added).toISOString().slice(0,10)))]
-                .sort((a,b) => b.localeCompare(a))
-                .map(date => (
-                  <option key={date} value={date}>
-                    {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
-                  </option>
-                ))
-              }
-            </select>
-          </div>
-        )}
-
-        {loading ? (
-          <p style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>Loading prayers...</p>
-        ) : displayed.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No prayer requests found.</p>
-        ) : viewMode === 'name' ? (
-          displayed.map(r => <PrayerCard key={r.id} request={r} />)
-        ) : (
-          Object.entries(grouped)
-            .sort((a, b) => new Date(b[0]) - new Date(a[0]))
-            .map(([date, items]) => (
-              <div key={date}>
-                <div style={S.dateHeader}>{date}</div>
-                {items.map(r => <PrayerCard key={r.id} request={r} />)}
+                ))}
+              </>
+            ) : menuSubmitChurch !== 'public' ? (
+              <>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+                  <strong style={{color:'#1B3A6B',fontSize:'15px'}}>Submit Prayer</strong>
+                  <button onClick={() => setShowMenuSubmit(false)} style={S.closeBtn}>X</button>
+                </div>
+                <div style={{background:'#FEF9EC',border:'1px solid #F6D86B',borderRadius:'8px',padding:'14px',fontSize:'13px',color:'#92620A',marginBottom:'12px'}}>
+                  Submit Prayer Request is only available for <strong>Public Prayers</strong>. AMC churches are managed by admin only.
+                </div>
+                <button onClick={() => setMenuSubmitChurch(null)} style={{background:'none',border:'1.5px solid #1B3A6B',color:'#1B3A6B',borderRadius:'8px',padding:'9px 18px',cursor:'pointer',fontSize:'13px',fontFamily:'inherit'}}>Back</button>
+              </>
+            ) : submitStatus === 'success' ? (
+              <div style={{textAlign:'center',padding:'16px 0'}}>
+                <p style={{color:'#16A34A',fontWeight:'700',fontSize:'15px',marginBottom:'6px'}}>Prayer submitted!</p>
+                <p style={{color:'#666',fontSize:'13px',marginBottom:'20px'}}>It will appear after review. God bless you!</p>
+                <button onClick={() => { setShowMenuSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.navyBtn}>Close</button>
               </div>
-            ))
-        )}
+            ) : (
+              <>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+                  <strong style={{color:'#1B3A6B',fontSize:'15px'}}>Submit to Public Prayers</strong>
+                  <button onClick={() => { setShowMenuSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>X</button>
+                </div>
+                <div style={S.fieldGroup}>
+                  <label style={S.fieldLabel}>Your Name</label>
+                  <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                    <button onClick={() => setUseAnon(false)}
+                      style={{flex:1,padding:'8px',borderRadius:'8px',border:'1.5px solid',borderColor:!useAnon?'#1B3A6B':'#D1D5DB',background:!useAnon?'#1B3A6B':'#fff',color:!useAnon?'#fff':'#666',cursor:'pointer',fontSize:'13px',fontFamily:'inherit',fontWeight:'600'}}>
+                      My Name
+                    </button>
+                    <button onClick={() => setUseAnon(true)}
+                      style={{flex:1,padding:'8px',borderRadius:'8px',border:'1.5px solid',borderColor:useAnon?'#1B3A6B':'#D1D5DB',background:useAnon?'#1B3A6B':'#fff',color:useAnon?'#fff':'#666',cursor:'pointer',fontSize:'13px',fontFamily:'inherit',fontWeight:'600'}}>
+                      Anonymous
+                    </button>
+                  </div>
+                  <input value={useAnon ? 'Anonymous' : visitorName} readOnly style={{...S.fieldInput,background:'#F5F5F5',color:'#999'}} />
+                </div>
+                <div style={S.fieldGroup}>
+                  <label style={S.fieldLabel}>Prayer Request</label>
+                  <textarea rows={4} placeholder="Share your prayer request..." value={prayerMsg} onChange={e => setPrayerMsg(e.target.value)} style={{...S.fieldInput,resize:'vertical'}} />
+                </div>
+                {submitStatus === 'error' && <p style={{color:'#DC2626',fontSize:'12px',marginBottom:'8px'}}>Something went wrong. Try again.</p>}
+                <button disabled={submitStatus==='loading'} onClick={async () => {
+                  if (!prayerMsg.trim()) return;
+                  setSubmitStatus('loading');
+                  try {
+                    full_name: useAnon ? 'Anonymous' : (visitorName||'Anonymous')
+                    setSubmitStatus('success');
+                  } catch { setSubmitStatus('error'); }
+                }} style={S.navyBtn}>{submitStatus==='loading' ? 'Submitting...' : 'Submit'}</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
-        <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
+      <div style={S.container}>
+        {!church ? (
+          <>
+            <nav style={S.nav}>
+              <span style={S.navBrand}>Prayer Wall</span>
+              <button onClick={() => setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'22px',color:navy,padding:'4px 8px',lineHeight:1}}>&#9776;</button>
+            </nav>
+            <div style={S.hero}>
+              <h1 style={S.heroTitle}>Prayer Wall</h1>
+              <p style={S.heroSub}>We are stronger together in prayer.</p>
+              <p style={S.heroDesc}>Choose a church to view and pray for their community.</p>
+            </div>
+            <div style={S.churchList}>
+              {CHURCHES.map(c => (
+                <button key={c.id} onClick={() => setChurch(c.id)} style={S.churchCard}>
+                  <span style={S.churchIcon}>{c.icon}</span>
+                  <div style={S.churchMeta}>
+                    <div style={S.churchName}>{c.name}</div>
+                    <div style={S.churchTagline}>{c.tagline}</div>
+                  </div>
+                  <span style={S.chevron}>&#8250;</span>
+                </button>
+              ))}
+            </div>
+            <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
+          </>
+        ) : (
+          <>
+            <nav style={S.nav}>
+              <span style={S.navBrand}>Prayer Wall</span>
+              <button onClick={() => setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'22px',color:navy,padding:'4px 8px',lineHeight:1}}>&#9776;</button>
+            </nav>
+
+            <div style={S.hero}>
+              <h1 style={S.heroTitle}>Prayer Wall</h1>
+              <p style={S.heroSub}>We are stronger together in prayer.</p>
+              <button onClick={() => setChurch(null)} style={S.changeBtn}>
+                {churchInfo?.icon} {churchInfo?.name} (change)
+              </button>
+            </div>
+
+            {/* Submit modal (existing) */}
+            {showSubmit && (
+              <div style={S.overlay}>
+                <div style={S.modal}>
+                  <div style={S.modalHeader}>
+                    <strong style={{ color: '#1B3A6B', fontSize: '15px' }}>Submit a Prayer Request</strong>
+                    <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.closeBtn}>X</button>
+                  </div>
+                  {submitStatus === 'success' ? (
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                      <p style={{ fontSize: '15px', fontWeight: '700', color: '#16A34A', marginBottom: '6px' }}>Prayer submitted!</p>
+                      <p style={{ fontSize: '13px', color: '#666', marginBottom: '20px' }}>It will appear after review. God bless you!</p>
+                      <button onClick={() => { setShowSubmit(false); setSubmitStatus('idle'); setPrayerMsg(''); }} style={S.navyBtn}>Close</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={S.fieldGroup}>
+                        <label style={S.fieldLabel}>Your Name</label>
+                        <input value={visitorName} readOnly style={{ ...S.fieldInput, background: '#F5F5F5', color: '#999' }} />
+                      </div>
+                      <div style={S.fieldGroup}>
+                        <label style={S.fieldLabel}>Your Prayer Request</label>
+                        <textarea rows={4} placeholder="Share your prayer request..." value={prayerMsg} onChange={e => setPrayerMsg(e.target.value)} style={{ ...S.fieldInput, resize: 'vertical' }} />
+                      </div>
+                      {submitStatus === 'error' && <p style={{ color: '#DC2626', fontSize: '12px', marginBottom: '8px' }}>Something went wrong. Try again.</p>}
+                      <button disabled={submitStatus === 'loading'} onClick={async () => {
+                        if (!prayerMsg.trim()) return;
+                        setSubmitStatus('loading');
+                        try {
+                          await submitPrayerRequest({ full_name: visitorName || 'Anonymous', prayer_message: prayerMsg, church: church || 'public' });
+                          setSubmitStatus('success');
+                        } catch { setSubmitStatus('error'); }
+                      }} style={S.navyBtn}>
+                        {submitStatus === 'loading' ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div style={S.tabs}>
+              {[['all', 'View All'], ['name', 'By Name'], ['date', 'By Date']].map(([mode, label]) => (
+                <button key={mode} onClick={() => setViewMode(mode)} style={viewMode === mode ? S.tabActive : S.tab}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {viewMode === 'name' && (
+              <input placeholder="Type a name to search..." value={nameFilter} onChange={e => setNameFilter(e.target.value)} style={S.filterInput} />
+            )}
+            {viewMode === 'date' && (
+              <div style={{marginBottom:'12px'}}>
+                <select value={dateFilter} onChange={e => setDateFilter(e.target.value)} style={S.filterInput}>
+                  <option value="">-- Select a date --</option>
+                  {[...new Set(requests.map(r => new Date(r.date_added).toISOString().slice(0,10)))]
+                    .sort((a,b) => b.localeCompare(a))
+                    .map(date => (
+                      <option key={date} value={date}>
+                        {new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}
+                      </option>
+                    ))
+                  }
+                </select>
+              </div>
+            )}
+
+            {loading ? (
+              <p style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>Loading prayers...</p>
+            ) : displayed.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No prayer requests found.</p>
+            ) : viewMode === 'name' ? (
+              displayed.map(r => <PrayerCard key={r.id} request={r} />)
+            ) : (
+              Object.entries(grouped)
+                .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+                .map(([date, items]) => (
+                  <div key={date}>
+                    <div style={S.dateHeader}>{date}</div>
+                    {items.map(r => <PrayerCard key={r.id} request={r} />)}
+                  </div>
+                ))
+            )}
+
+            <div style={S.footer}>© 2026 Prayer Wall — All Rights Reserved</div>
+          </>
+        )}
       </div>
     </div>
   );
