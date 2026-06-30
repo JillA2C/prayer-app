@@ -37,10 +37,10 @@ export default function Dashboard() {
   const [publicRequests, setPublicRequests] = useState([]);
   const [publicChurch, setPublicChurch] = useState(null);
   const [showPublicView, setShowPublicView] = useState(false);
-const [publicMyStatus, setPublicMyStatus] = useState(false);
-const [publicStatusName, setPublicStatusName] = useState('');
-const [publicStatusResults, setPublicStatusResults] = useState({ requests: [], comments: [] });
-const [publicStatusLoading, setPublicStatusLoading] = useState(false);
+  const [publicMyStatus, setPublicMyStatus] = useState(false);
+  const [publicStatusName, setPublicStatusName] = useState('');
+  const [publicStatusResults, setPublicStatusResults] = useState({ requests: [], comments: [] });
+  const [publicStatusLoading, setPublicStatusLoading] = useState(false);
   const [publicSearch, setPublicSearch] = useState('');
   const [publicDateFilter, setPublicDateFilter] = useState('');
   const [myStatuses, setMyStatuses] = useState([]);
@@ -50,6 +50,9 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
   const [showTextLayout, setShowTextLayout] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth()); // 0-indexed
+  const [calSelYear, setCalSelYear] = useState(new Date().getFullYear());
+  const [calYearPage, setCalYearPage] = useState(0);
+  const [calDatePage, setCalDatePage] = useState(0);
   const navigate = useNavigate();
 
   const load = async () => {
@@ -181,8 +184,9 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
     setSelectedDate('');
   };
 
+  const toLocalDate = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
   const requestsForDate = selectedDate
-    ? requests.filter(r => new Date(r.date_added).toISOString().slice(0,10) === selectedDate)
+    ? requests.filter(r => toLocalDate(r.date_added) === selectedDate)
     : requests;
 
   // Group comments by the date of their prayer request
@@ -192,6 +196,22 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
     if (!commentsByDate[dateKey]) commentsByDate[dateKey] = [];
     commentsByDate[dateKey].push(c);
   });
+
+  const pubCalSource = publicRequests.filter(r => r.status === 'approved' && r.church === publicChurch);
+  const pubCalByYear = {};
+  pubCalSource.forEach(r => {
+    const d2 = new Date(r.date_added);
+    const yr = d2.getFullYear();
+    const dateStr = `${yr}-${String(d2.getMonth()+1).padStart(2,'0')}-${String(d2.getDate()).padStart(2,'0')}`;
+    if (!pubCalByYear[yr]) pubCalByYear[yr] = {};
+    pubCalByYear[yr][dateStr] = (pubCalByYear[yr][dateStr] || 0) + 1;
+  });
+  const pubCalYears = Object.keys(pubCalByYear).map(Number).sort((a,b) => b-a);
+  const PUB_YEARS_PER_PAGE = 4;
+  const PUB_DATES_PER_PAGE = 4;
+  const pubCalVisYears = pubCalYears.slice(calYearPage * PUB_YEARS_PER_PAGE, (calYearPage + 1) * PUB_YEARS_PER_PAGE);
+  const pubCalDates = Object.keys(pubCalByYear[calSelYear] || {}).sort((a,b) => a.localeCompare(b));
+  const pubCalVisDates = pubCalDates.slice(calDatePage * PUB_DATES_PER_PAGE, (calDatePage + 1) * PUB_DATES_PER_PAGE);
 
   if (!church) {
     return (
@@ -406,64 +426,74 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
               style={{display:'block', width:'100%', padding:'8px', border:'1px solid #ccc', borderRadius:'6px', marginBottom:'16px', boxSizing:'border-box'}} />
           )}
           {publicView === 'date' && (
-          <div style={{marginBottom:'16px'}}>
-            {!publicDateFilter ? (
-              <div style={{overflowX:'auto'}}>
-                <table style={{width:'100%', borderCollapse:'collapse', fontSize:'13px'}}>
-                  <thead>
-                    <tr>
-                      <td colSpan="99" style={{background:'#1B3A6B', color:'#fff', padding:'10px 14px', fontWeight:'700', fontSize:'14px', borderRadius:'8px 8px 0 0'}}>
-                        Calendar of {CHURCHES.find(c=>c.id===publicChurch)?.name} Prayer Request
-                      </td>
-                    </tr>
-                    <tr style={{background:'#F0F4F9'}}>
-                      <th style={{padding:'8px 12px', textAlign:'left', border:'1px solid #E2E8F0', color:'#1B3A6B', fontWeight:'700'}}>Year</th>
-                      <th style={{padding:'8px 12px', border:'1px solid #E2E8F0', color:'#6B7280', fontWeight:'600'}}>Dates</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const byYear = {};
-                      publicRequests
-                        .filter(r => r.status === 'approved' && r.church === publicChurch)
-                        .forEach(r => {
-                          const yr = new Date(r.date_added).getFullYear();
-                          const dateStr = new Date(r.date_added).toISOString().slice(0,10);
-                          if (!byYear[yr]) byYear[yr] = {};
-                          byYear[yr][dateStr] = (byYear[yr][dateStr] || 0) + 1;
-                        });
-                      return Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([yr, dates]) => (
-                        <tr key={yr} style={{borderBottom:'1px solid #E2E8F0'}}>
-                          <td style={{padding:'10px 12px', fontWeight:'700', color:'#1B3A6B', border:'1px solid #E2E8F0', background:'#F8FAFC', whiteSpace:'nowrap'}}>{yr}</td>
-                          <td style={{padding:'6px 8px', border:'1px solid #E2E8F0'}}>
-                            <div style={{display:'flex', flexWrap:'wrap', gap:'6px'}}>
-                              {Object.entries(dates).sort((a,b) => a[0].localeCompare(b[0])).map(([dateStr, count]) => (
-                                <button key={dateStr} onClick={() => setPublicDateFilter(dateStr)}
-                                  style={{background:'#1B3A6B', color:'#fff', border:'none', borderRadius:'6px', padding:'5px 10px', cursor:'pointer', fontSize:'12px', fontWeight:'600', fontFamily:'inherit'}}>
-                                  {new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short', day:'numeric'})}
-                                  <span style={{marginLeft:'5px', background:'#C9A84C', borderRadius:'10px', padding:'1px 6px', fontSize:'11px'}}>{count}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      ));
-                    })()}
-                  </tbody>
-                </table>
-      </div>
-    ) : (
-      <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
-        <button onClick={() => setPublicDateFilter('')} style={{background:'none', border:'1px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px'}}>
-          Back to Calendar
-        </button>
-        <span style={{fontWeight:'700', color:'#1B3A6B', fontSize:'14px'}}>
-          {new Date(publicDateFilter+'T00:00:00').toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}
-        </span>
-      </div>
-    )}
-  </div>
-)}
+            <div style={{marginBottom:'16px'}}>
+              {!publicDateFilter ? (
+                <div style={{border:'1.5px solid #E2E8F0', borderRadius:'12px', overflow:'hidden', marginBottom:'8px'}}>
+                  <div style={{background:'#1B3A6B', color:'#fff', padding:'10px 14px', fontWeight:'700', fontSize:'14px'}}>
+                    Calendar of {CHURCHES.find(c=>c.id===publicChurch)?.name} Prayer Request
+                  </div>
+                  {/* Year row */}
+                  <div style={{display:'flex', alignItems:'center', gap:'6px', padding:'10px 12px', background:'#F8FAFC', borderBottom:'1px solid #E2E8F0'}}>
+                    <span style={{fontSize:'12px', color:'#6B7280', fontWeight:'600', marginRight:'2px'}}>Year:</span>
+                    <button onClick={() => setCalYearPage(p => Math.max(0, p-1))} disabled={calYearPage === 0}
+                      style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                        cursor: calYearPage === 0 ? 'default' : 'pointer',
+                        color: calYearPage === 0 ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>‹</button>
+                    <div style={{display:'flex', gap:'6px', flex:1}}>
+                      {pubCalVisYears.map(yr => (
+                        <button key={yr} onClick={() => { setCalSelYear(yr); setCalDatePage(0); }}
+                          style={{padding:'4px 12px', borderRadius:'20px',
+                            border: yr === calSelYear ? '2px solid #1B3A6B' : '1px solid #D1D5DB',
+                            background: yr === calSelYear ? '#1B3A6B' : '#fff',
+                            color: yr === calSelYear ? '#fff' : '#374151',
+                            fontWeight:'700', fontSize:'13px', cursor:'pointer', whiteSpace:'nowrap'}}>
+                          {yr}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setCalYearPage(p => p+1)} disabled={(calYearPage+1)*PUB_YEARS_PER_PAGE >= pubCalYears.length}
+                      style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                        cursor: (calYearPage+1)*PUB_YEARS_PER_PAGE >= pubCalYears.length ? 'default' : 'pointer',
+                        color: (calYearPage+1)*PUB_YEARS_PER_PAGE >= pubCalYears.length ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>›</button>
+                  </div>
+                  {/* Date row */}
+                  <div style={{display:'flex', alignItems:'center', gap:'6px', padding:'10px 12px', background:'#fff'}}>
+                    <button onClick={() => setCalDatePage(p => Math.max(0, p-1))} disabled={calDatePage === 0}
+                      style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                        cursor: calDatePage === 0 ? 'default' : 'pointer',
+                        color: calDatePage === 0 ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>‹</button>
+                    <div style={{display:'flex', gap:'6px', flex:1}}>
+                      {pubCalDates.length === 0
+                        ? <span style={{color:'#9CA3AF', fontSize:'13px'}}>No entries for {calSelYear}</span>
+                        : pubCalVisDates.map(dateStr => (
+                          <button key={dateStr} onClick={() => setPublicDateFilter(dateStr)}
+                            style={{background:'#1B3A6B', color:'#fff', border:'none', borderRadius:'8px',
+                              padding:'7px 12px', cursor:'pointer', fontSize:'13px', fontWeight:'600',
+                              fontFamily:'inherit', whiteSpace:'nowrap', flex:1}}>
+                            {new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short', day:'numeric'})}
+                          </button>
+                        ))
+                      }
+                    </div>
+                    <button onClick={() => setCalDatePage(p => p+1)} disabled={(calDatePage+1)*PUB_DATES_PER_PAGE >= pubCalDates.length}
+                      style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                        cursor: (calDatePage+1)*PUB_DATES_PER_PAGE >= pubCalDates.length ? 'default' : 'pointer',
+                        color: (calDatePage+1)*PUB_DATES_PER_PAGE >= pubCalDates.length ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>›</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
+                  <button onClick={() => setPublicDateFilter('')}
+                    style={{background:'none', border:'1px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px'}}>
+                    Back to Calendar
+                  </button>
+                  <span style={{fontWeight:'700', color:'#1B3A6B', fontSize:'14px'}}>
+                    {new Date(publicDateFilter+'T00:00:00').toLocaleDateString('en-US',{month:'long', day:'numeric', year:'numeric'})}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {(() => {
             let displayed = publicRequests
@@ -477,7 +507,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             if (publicView==='name' && publicSearch)
               displayed = displayed.filter(r => r.display_name.toLowerCase().includes(publicSearch.toLowerCase()));
             if (publicView==='date' && publicDateFilter)
-              displayed = displayed.filter(r => new Date(r.date_added).toISOString().slice(0,10) === publicDateFilter);
+              displayed = displayed.filter(r => toLocalDate(r.date_added) === publicDateFilter);
             if (publicView==='name') {
               displayed = [...displayed].sort((a,b) => a.display_name.localeCompare(b.display_name));
               return displayed.length === 0
@@ -540,7 +570,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
               {(() => {
                 const existingDates = {};
                 requests.forEach(r => {
-                  const dk = new Date(r.date_added).toISOString().slice(0,10);
+                 const dk = toLocalDate(r.date_added);
                   existingDates[dk] = (existingDates[dk] || 0) + 1;
                 });
 
@@ -627,7 +657,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
                             const day = i + 1;
                             const dateStr = `${curYear}-${String(curMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                             const count = existingDates[dateStr] || 0;
-                            const isToday = dateStr === today.toISOString().slice(0,10);
+                            const isToday = dateStr === toLocalDate(today);
                             return (
                               <button key={day} onClick={() => { setSelectedDate(dateStr); resetForm(); }}
                                 title={count > 0 ? `${count} entr${count===1?'y':'ies'}` : 'No entries — click to add'}
@@ -659,7 +689,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
               {(() => {
                 const groups = {};
                 requests.forEach(r => {
-                  const dateKey = new Date(r.date_added).toISOString().slice(0,10);
+                  const dateKey = toLocalDate(r.date_added);
                   if (!groups[dateKey]) groups[dateKey] = 0;
                   groups[dateKey]++;
                 });
@@ -985,7 +1015,7 @@ const [publicStatusLoading, setPublicStatusLoading] = useState(false);
             <option value="">-- Select a date --</option>
             {[...new Set(publicRequests
               .filter(r => r.status === 'approved' && r.church === publicChurch)
-              .map(r => new Date(r.date_added).toISOString().slice(0,10)))]
+              .map(r => toLocalDate(r.date_added)))]
               .sort((a,b) => b.localeCompare(a))
               .map(date => (
                 <option key={date} value={date}>

@@ -21,6 +21,9 @@ export default function Home() {
   const [submitStatus, setSubmitStatus] = useState('idle');
   const visitorName = localStorage.getItem('visitorName') || '';
   const [useAnon, setUseAnon] = useState(false);
+  const [calSelYear, setCalSelYear] = useState(new Date().getFullYear());
+  const [calYearPage, setCalYearPage] = useState(0);
+  const [calDatePage, setCalDatePage] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   const [showMenuSubmit, setShowMenuSubmit] = useState(false);
   const [menuSubmitChurch, setMenuSubmitChurch] = useState(null);
@@ -43,18 +46,33 @@ export default function Home() {
   if (viewMode === 'name' && nameFilter)
     displayed = displayed.filter(r => r.display_name?.toLowerCase().includes(nameFilter.toLowerCase()));
   if (viewMode === 'date' && dateFilter)
-    displayed = displayed.filter(r => new Date(r.date_added).toISOString().slice(0, 10) === dateFilter);
+    displayed = displayed.filter(r => { const d2 = new Date(r.date_added); return `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}-${String(d2.getDate()).padStart(2,'0')}` === dateFilter; });
   if (viewMode === 'name')
     displayed.sort((a, b) => (a.display_name || '').localeCompare(b.display_name || ''));
 
-  const grouped = {};
-  if (viewMode !== 'name') {
-    displayed.forEach(r => {
-      const key = new Date(r.date_added).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(r);
-    });
-  }
+      const grouped = {};
+      if (viewMode !== 'name') {
+        displayed.forEach(r => {
+          const key = new Date(r.date_added).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(r);
+        });
+      }
+      // Calendar pre-calculations (must be outside IIFE)
+      const calByYear = {};
+      requests.forEach(r => {
+        const d2 = new Date(r.date_added);
+        const yr = d2.getFullYear();
+        const dateStr = `${yr}-${String(d2.getMonth()+1).padStart(2,'0')}-${String(d2.getDate()).padStart(2,'0')}`;
+        if (!calByYear[yr]) calByYear[yr] = {};
+        calByYear[yr][dateStr] = (calByYear[yr][dateStr] || 0) + 1;
+      });
+      const calYears = Object.keys(calByYear).map(Number).sort((a,b) => b-a);
+      const YEARS_PER_PAGE = 4;
+      const DATES_PER_PAGE = 4;
+      const calVisYears = calYears.slice(calYearPage * YEARS_PER_PAGE, (calYearPage + 1) * YEARS_PER_PAGE);
+      const calDates = Object.keys(calByYear[calSelYear] || {}).sort((a,b) => a.localeCompare(b));
+      const calVisDates = calDates.slice(calDatePage * DATES_PER_PAGE, (calDatePage + 1) * DATES_PER_PAGE);
  return (
     <div style={S.pageBg}>
 
@@ -142,7 +160,11 @@ export default function Home() {
                   if (!prayerMsg.trim()) return;
                   setSubmitStatus('loading');
                   try {
-                    full_name: useAnon ? 'Anonymous' : (visitorName||'Anonymous')
+                    await submitPrayerRequest({
+                      full_name: useAnon ? 'Anonymous' : (visitorName || 'Anonymous'),
+                      prayer_message: prayerMsg,
+                      church: 'public'
+                    });
                     setSubmitStatus('success');
                   } catch { setSubmitStatus('error'); }
                 }} style={S.navyBtn}>{submitStatus==='loading' ? 'Submitting...' : 'Submit'}</button>
@@ -249,52 +271,63 @@ export default function Home() {
             {viewMode === 'date' && (
               <div style={{marginBottom:'16px'}}>
                 {!dateFilter ? (
-                  <div style={{overflowX:'auto'}}>
-                    <table style={{width:'100%', borderCollapse:'collapse', fontSize:'13px'}}>
-                      <thead>
-                        <tr>
-                          <td colSpan="99" style={{background:'#1B3A6B', color:'#fff', padding:'10px 14px', fontWeight:'700', fontSize:'14px', borderRadius:'8px 8px 0 0'}}>
-                            Calendar of {churchInfo?.name} Prayer Request
-                          </td>
-                        </tr>
-                        <tr style={{background:'#F0F4F9'}}>
-                          <th style={{padding:'8px 12px', textAlign:'left', border:'1px solid #E2E8F0', color:'#1B3A6B', fontWeight:'700', whiteSpace:'nowrap'}}>Year</th>
-                          <th style={{padding:'8px 12px', border:'1px solid #E2E8F0', color:'#6B7280', fontWeight:'600'}}>Dates</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const byYear = {};
-                          requests.forEach(r => {
-                            const d = new Date(r.date_added);
-                            const yr = d.getFullYear();
-                            const dateStr = r.date_added.slice ? new Date(r.date_added).toISOString().slice(0,10) : '';
-                            if (!byYear[yr]) byYear[yr] = {};
-                            byYear[yr][dateStr] = (byYear[yr][dateStr] || 0) + 1;
-                          });
-                          return Object.entries(byYear).sort((a,b) => b[0]-a[0]).map(([yr, dates]) => (
-                            <tr key={yr} style={{borderBottom:'1px solid #E2E8F0'}}>
-                              <td style={{padding:'10px 12px', fontWeight:'700', color:'#1B3A6B', border:'1px solid #E2E8F0', background:'#F8FAFC', whiteSpace:'nowrap'}}>{yr}</td>
-                              <td style={{padding:'6px 8px', border:'1px solid #E2E8F0'}}>
-                                <div style={{display:'flex', flexWrap:'wrap', gap:'6px'}}>
-                                  {Object.entries(dates).sort((a,b) => a[0].localeCompare(b[0])).map(([dateStr, count]) => (
-                                    <button key={dateStr} onClick={() => setDateFilter(dateStr)}
-                                      style={{background:'#1B3A6B', color:'#fff', border:'none', borderRadius:'6px', padding:'5px 10px', cursor:'pointer', fontSize:'12px', fontWeight:'600', fontFamily:'inherit'}}>
-                                      {new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short', day:'numeric'})}
-                                      <span style={{marginLeft:'5px', background:'#C9A84C', borderRadius:'10px', padding:'1px 6px', fontSize:'11px'}}>{count}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </td>
-                            </tr>
-                          ));
-                        })()}
-                      </tbody>
-                    </table>
+                  <div style={{border:'1.5px solid #E2E8F0', borderRadius:'12px', overflow:'hidden', marginBottom:'8px'}}>
+                    <div style={{background:'#1B3A6B', color:'#fff', padding:'10px 14px', fontWeight:'700', fontSize:'14px'}}>
+                      Calendar of {churchInfo?.name} Prayer Request
+                    </div>
+                    {/* Year row */}
+                    <div style={{display:'flex', alignItems:'center', gap:'6px', padding:'10px 12px', background:'#F8FAFC', borderBottom:'1px solid #E2E8F0'}}>
+                      <span style={{fontSize:'12px', color:'#6B7280', fontWeight:'600', marginRight:'2px'}}>Year:</span>
+                      <button onClick={() => setCalYearPage(p => Math.max(0, p-1))} disabled={calYearPage === 0}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                          cursor: calYearPage === 0 ? 'default' : 'pointer',
+                          color: calYearPage === 0 ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>‹</button>
+                      <div style={{display:'flex', gap:'6px', flex:1}}>
+                        {calVisYears.map(yr => (
+                          <button key={yr} onClick={() => { setCalSelYear(yr); setCalDatePage(0); }}
+                            style={{padding:'4px 12px', borderRadius:'20px',
+                              border: yr === calSelYear ? '2px solid #1B3A6B' : '1px solid #D1D5DB',
+                              background: yr === calSelYear ? '#1B3A6B' : '#fff',
+                              color: yr === calSelYear ? '#fff' : '#374151',
+                              fontWeight:'700', fontSize:'13px', cursor:'pointer', whiteSpace:'nowrap'}}>
+                            {yr}
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={() => setCalYearPage(p => p+1)} disabled={(calYearPage+1)*YEARS_PER_PAGE >= calYears.length}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                          cursor: (calYearPage+1)*YEARS_PER_PAGE >= calYears.length ? 'default' : 'pointer',
+                          color: (calYearPage+1)*YEARS_PER_PAGE >= calYears.length ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>›</button>
+                    </div>
+                    {/* Date row */}
+                    <div style={{display:'flex', alignItems:'center', gap:'6px', padding:'10px 12px', background:'#fff'}}>
+                      <button onClick={() => setCalDatePage(p => Math.max(0, p-1))} disabled={calDatePage === 0}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                          cursor: calDatePage === 0 ? 'default' : 'pointer',
+                          color: calDatePage === 0 ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>‹</button>
+                      <div style={{display:'flex', gap:'6px', flex:1}}>
+                        {calDates.length === 0
+                          ? <span style={{color:'#9CA3AF', fontSize:'13px'}}>No entries for {calSelYear}</span>
+                          : calVisDates.map(dateStr => (
+                            <button key={dateStr} onClick={() => setDateFilter(dateStr)}
+                              style={{background:'#1B3A6B', color:'#fff', border:'none', borderRadius:'8px',
+                                padding:'7px 12px', cursor:'pointer', fontSize:'13px', fontWeight:'600',
+                                fontFamily:'inherit', whiteSpace:'nowrap', flex:1}}>
+                              {new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short', day:'numeric'})}
+                            </button>
+                          ))
+                        }
+                      </div>
+                      <button onClick={() => setCalDatePage(p => p+1)} disabled={(calDatePage+1)*DATES_PER_PAGE >= calDates.length}
+                        style={{background:'none', border:'1px solid #D1D5DB', borderRadius:'6px', width:'26px', height:'26px',
+                          cursor: (calDatePage+1)*DATES_PER_PAGE >= calDates.length ? 'default' : 'pointer',
+                          color: (calDatePage+1)*DATES_PER_PAGE >= calDates.length ? '#D1D5DB' : '#1B3A6B', fontWeight:'700', fontSize:'14px', flexShrink:0}}>›</button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px'}}>
-                    <button onClick={() => setDateFilter('')} style={{background:'none', border:'1.5px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px', fontFamily:'inherit'}}>
+                    <button onClick={() => setDateFilter('')}
+                      style={{background:'none', border:'1.5px solid #1B3A6B', borderRadius:'6px', padding:'6px 12px', color:'#1B3A6B', cursor:'pointer', fontSize:'13px', fontFamily:'inherit'}}>
                       Back to Calendar
                     </button>
                     <span style={{fontWeight:'700', color:'#1B3A6B', fontSize:'14px'}}>
@@ -303,8 +336,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
-            )}
-
+            )}          
             {loading ? (
               <p style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>Loading prayers...</p>
             ) : displayed.length === 0 ? (
